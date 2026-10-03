@@ -1,0 +1,184 @@
+{
+  "schema_version": "0.1",
+  "meta": {
+    "title": "Scaled Dot-Product Attention",
+    "subtitle": "From query-key scores to weighted values"
+  },
+  "intro": {
+    "why_it_matters": "Attention lets a model decide which available information is most relevant to each query.",
+    "overview": "Explore how query and key matrices produce scores, how scaling and row-wise softmax produce weights, and how those weights combine value vectors."
+  },
+  "symbols": [
+    {
+      "symbol": "Q",
+      "label": "Query matrix",
+      "description": "Represents what each token is looking for."
+    },
+    {
+      "symbol": "K",
+      "label": "Key matrix",
+      "description": "Represents what each token offers for matching."
+    },
+    {
+      "symbol": "V",
+      "label": "Value matrix",
+      "description": "Contains the vectors combined by the attention weights."
+    },
+    {
+      "symbol": "d_k",
+      "label": "Key dimension",
+      "description": "Controls the square-root scaling factor applied to the scores."
+    }
+  ],
+  "variables": [
+    {
+      "id": "q",
+      "type": "matrix",
+      "default": [[1.0, 0.0], [0.0, 1.0]]
+    },
+    {
+      "id": "k",
+      "type": "matrix",
+      "default": [[1.0, 0.0], [1.0, 1.0]]
+    },
+    {
+      "id": "v",
+      "type": "matrix",
+      "default": [[1.0, 2.0], [3.0, 4.0]]
+    },
+    {
+      "id": "d_k",
+      "type": "scalar",
+      "default": 2
+    },
+    {
+      "id": "apply_scaling",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "q_editor",
+      "type": "matrix_editor",
+      "variable": "q",
+      "label": "Query matrix Q"
+    },
+    {
+      "id": "k_editor",
+      "type": "matrix_editor",
+      "variable": "k",
+      "label": "Key matrix K"
+    },
+    {
+      "id": "v_editor",
+      "type": "matrix_editor",
+      "variable": "v",
+      "label": "Value matrix V"
+    },
+    {
+      "id": "dimension_control",
+      "type": "slider",
+      "variable": "d_k",
+      "label": "Key dimension",
+      "min": 1,
+      "max": 8,
+      "step": 1
+    },
+    {
+      "id": "scaling_toggle",
+      "type": "toggle",
+      "variable": "apply_scaling",
+      "label": "Apply score scaling"
+    }
+  ],
+  "computations": [
+    {
+      "id": "raw_scores",
+      "op": "matmul_transpose",
+      "inputs": ["q", "k"]
+    },
+    {
+      "id": "scale",
+      "op": "sqrt",
+      "inputs": ["d_k"]
+    },
+    {
+      "id": "scaled_scores",
+      "op": "divide",
+      "inputs": ["raw_scores", "scale"]
+    },
+    {
+      "id": "attention_weights",
+      "op": "row_softmax",
+      "inputs": ["scaled_scores"]
+    },
+    {
+      "id": "attention_output",
+      "op": "matrix_multiply",
+      "inputs": ["attention_weights", "v"]
+    }
+  ],
+  "visualizations": [
+    {
+      "id": "score_heatmap",
+      "type": "heatmap",
+      "data": "scaled_scores",
+      "title": "Scaled attention scores"
+    },
+    {
+      "id": "weight_heatmap",
+      "type": "heatmap",
+      "data": "attention_weights",
+      "title": "Attention weights"
+    },
+    {
+      "id": "attention_steps",
+      "type": "step_pipeline",
+      "data": ["raw_scores", "scaled_scores", "attention_weights", "attention_output"],
+      "title": "Attention calculation pipeline"
+    },
+    {
+      "id": "output_matrix",
+      "type": "matrix_display",
+      "data": "attention_output",
+      "title": "Weighted output"
+    }
+  ],
+  "intermediate_values": [
+    {
+      "label": "Raw query-key scores",
+      "data": "raw_scores"
+    },
+    {
+      "label": "Scaling factor",
+      "data": "scale"
+    },
+    {
+      "label": "Normalized attention weights",
+      "data": "attention_weights"
+    }
+  ],
+  "guided_explorations": [
+    {
+      "title": "Make one match stronger",
+      "instruction": "Increase a query entry that aligns with one key and compare the resulting score row.",
+      "observe": "Watch how the corresponding normalized weight changes relative to the other weights in that row.",
+      "explanation": "A larger query-key dot product receives more weight after row-wise softmax."
+    },
+    {
+      "title": "Inspect score scaling",
+      "instruction": "Change the key dimension and compare the scaled scores and attention weights.",
+      "observe": "Larger scaling divisors reduce score magnitudes before softmax.",
+      "explanation": "Scaling helps keep large dot products from making the softmax distribution excessively sharp."
+    }
+  ],
+  "limitation": {
+    "text": "This small numerical example explains one attention calculation but does not reproduce a complete Transformer or its learned projections."
+  },
+  "source": {
+    "paper": "Attention Is All You Need",
+    "section": "Section 3.2.1 - Scaled Dot-Product Attention",
+    "url": "https://arxiv.org/abs/1706.03762"
+  }
+}

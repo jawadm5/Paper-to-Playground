@@ -1,0 +1,65 @@
+{
+  "schema_version": "0.1",
+  "meta": {
+    "title": "Invalid fixture",
+    "subtitle": "Exercises contract errors"
+  },
+  "intro": {
+    "why_it_matters": "This fixture verifies that invalid contracts are rejected.",
+    "overview": "It intentionally contains three independent schema errors."
+  },
+  "symbols": [],
+  "variables": [
+    {
+      "id": "x",
+      "type": "scalar",
+      "default": 1
+    }
+  ],
+  "controls": [
+    {
+      "id": "only_control",
+      "type": "number_input",
+      "variable": "x",
+      "label": "Only control"
+    }
+  ],
+  "computations": [
+    {
+      "id": "bad_computation",
+      "op": "execute_python",
+      "inputs": ["x"]
+    }
+  ],
+  "visualizations": [
+    {
+      "id": "bad_visualization",
+      "type": "scatter_plot",
+      "data": "bad_computation",
+      "title": "Unsupported visualization"
+    }
+  ],
+  "intermediate_values": [],
+  "guided_explorations": [
+    {
+      "title": "First exploration",
+      "instruction": "Change the value.",
+      "observe": "Observe the result.",
+      "explanation": "This is sufficient text for the invalid fixture."
+    },
+    {
+      "title": "Second exploration",
+      "instruction": "Change it again.",
+      "observe": "Observe it again.",
+      "explanation": "The deliberate errors are elsewhere in the fixture."
+    }
+  ],
+  "limitation": {
+    "text": "This fixture is deliberately invalid."
+  },
+  "source": {
+    "paper": "Fixture source",
+    "section": "Test section",
+    "url": "https://example.com/source"
+  }
+}

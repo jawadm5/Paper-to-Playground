@@ -1,0 +1,82 @@
+{
+  "paper": {
+    "title": "Attention Is All You Need",
+    "source_url": "https://arxiv.org/abs/1706.03762",
+    "relevant_section": "Section 3.2.1 - Scaled Dot-Product Attention"
+  },
+  "focus": "Scaled dot-product attention",
+  "audience": "Second-year engineering undergraduate",
+  "learning_goal": "Understand how Q, K, and V are transformed into attention scores, normalized attention weights, and the final weighted output, and understand why scaling by sqrt(d_k) is used.",
+  "concept": {
+    "summary": "Scaled dot-product attention compares each query with each key using a dot product, scales the scores, converts them into normalized weights with softmax, then uses those weights to combine the value vectors.",
+    "why_it_matters": "It is the core mechanism that lets a Transformer decide which pieces of information are most relevant to each token.",
+    "symbols": [
+      {
+        "symbol": "Q",
+        "name": "Query matrix",
+        "meaning": "Represents what each token is looking for."
+      },
+      {
+        "symbol": "K",
+        "name": "Key matrix",
+        "meaning": "Represents what each token offers for matching."
+      },
+      {
+        "symbol": "V",
+        "name": "Value matrix",
+        "meaning": "Contains the information that will be combined after attention weights are computed."
+      },
+      {
+        "symbol": "d_k",
+        "name": "Key dimension",
+        "meaning": "Dimensionality of the key/query vectors; used in the scaling factor sqrt(d_k)."
+      }
+    ],
+    "equations": [
+      {
+        "id": "scaled_dot_product_attention",
+        "latex": "\\mathrm{Attention}(Q,K,V)=\\mathrm{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V",
+        "meaning": "Compute query-key similarity, scale it, normalize it with softmax, then form a weighted sum of values."
+      }
+    ],
+    "mechanism_steps": [
+      {
+        "step": 1,
+        "name": "Similarity scores",
+        "description": "Compute QK^T to measure how strongly each query matches each key."
+      },
+      {
+        "step": 2,
+        "name": "Scaling",
+        "description": "Divide the scores by sqrt(d_k) so that large dot products do not make the softmax distribution excessively sharp."
+      },
+      {
+        "step": 3,
+        "name": "Normalization",
+        "description": "Apply softmax row-wise so each row becomes a probability-like distribution that sums to 1."
+      },
+      {
+        "step": 4,
+        "name": "Weighted output",
+        "description": "Multiply the attention weights by V to combine value vectors according to the learned relevance."
+      }
+    ]
+  },
+  "assumptions": [
+    "Use small matrices for the educational demonstration.",
+    "Apply softmax row-wise."
+  ],
+  "limitations": [
+    "A small toy example demonstrates the mechanism but does not reproduce the full Transformer architecture or the paper's experimental results."
+  ],
+  "common_misunderstandings": [
+    "Q, K, and V are not probabilities themselves.",
+    "The scaling factor changes the score magnitudes before softmax; it is not an extra attention head."
+  ],
+  "source_grounding": [
+    {
+      "section": "3.2.1",
+      "claim": "Scaled dot-product attention computes dot products between queries and keys, divides by sqrt(d_k), applies softmax, and uses the result to weight the values."
+    }
+  ]
+}
