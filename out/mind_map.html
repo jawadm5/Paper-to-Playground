@@ -1,0 +1,1995 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>A teaching edition of Query-Dependent Weighted Memory</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #61708a;
+      --surface: #ffffff;
+      --surface-soft: #f5f7fb;
+      --line: #dfe5ef;
+      --accent: #3558d4;
+      --accent-soft: #eef1ff;
+      --warm: #8a4b08;
+      --warm-soft: #fff7e8;
+      --radius: 18px;
+      --shadow: 0 18px 50px rgba(23, 32, 51, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    body { margin: 0; min-width: 320px; }
+    h1, h2, h3, h4, p { margin-top: 0; }
+    a { color: var(--accent); text-underline-offset: 0.18em; }
+    a:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(53, 88, 212, 0.26);
+      outline-offset: 3px;
+    }
+    .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 82px 0 68px;
+      color: #fff;
+      background: #172033;
+    }
+    .hero::after {
+      position: absolute;
+      top: -160px;
+      right: -90px;
+      width: 420px;
+      height: 420px;
+      border: 78px solid rgba(255,255,255,.055);
+      border-radius: 50%;
+      content: "";
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 900px; }
+    .eyebrow, .section-kicker, .content-label, .section-kind,
+    .outcome-level, .boundary-kind, .basis-label {
+      display: block;
+      color: var(--accent);
+      font-size: .74rem;
+      font-weight: 780;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .hero .eyebrow { margin-bottom: 13px; color: #aebcff; }
+    h1 {
+      max-width: 18ch;
+      margin-bottom: 20px;
+      font-size: clamp(2.5rem, 6.5vw, 5rem);
+      line-height: 1.02;
+      letter-spacing: -.052em;
+    }
+    .subtitle {
+      max-width: 720px;
+      margin-bottom: 28px;
+      color: #cbd3e5;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+    }
+    .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-stat {
+      padding: 7px 12px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 999px;
+      color: #e9edfa;
+      background: rgba(255,255,255,.06);
+      font-size: .85rem;
+    }
+
+    .document { padding: 56px 0 80px; }
+    .learning-outcomes { margin-bottom: 56px; }
+    .section-heading {
+      display: grid;
+      grid-template-columns: minmax(220px, .5fr) 1fr;
+      gap: 30px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .section-kicker { margin-bottom: 8px; }
+    .section-heading h2 {
+      margin-bottom: 0;
+      font-size: clamp(1.7rem, 3vw, 2.35rem);
+      line-height: 1.12;
+      letter-spacing: -.035em;
+    }
+    .section-heading > p { max-width: 640px; margin-bottom: 2px; color: var(--muted); }
+    .outcome-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: outcomes;
+    }
+    .outcome-card {
+      position: relative;
+      min-height: 150px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      counter-increment: outcomes;
+    }
+    .outcome-card::after {
+      position: absolute;
+      top: 13px;
+      right: 18px;
+      color: #d7ddeb;
+      content: counter(outcomes, decimal-leading-zero);
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+    .outcome-level { margin-bottom: 16px; }
+    .outcome-card p { margin-bottom: 0; color: var(--muted); }
+
+    .mind-map-section { margin-bottom: 56px; }
+    .mind-map-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 270px;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .mind-map-canvas {
+      min-width: 0;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background-color: var(--surface);
+      background-image: radial-gradient(#dfe5ef 1px, transparent 1px);
+      background-size: 18px 18px;
+      box-shadow: var(--shadow);
+    }
+    .mind-map-svg { display: block; width: 100%; min-width: 760px; height: auto; }
+    .mind-map-edge-path {
+      fill: none;
+      stroke: #a9b4c8;
+      stroke-width: 2;
+    }
+    #mind-map-arrow path { fill: #7d8ba5; }
+    .mind-map-edge-label {
+      fill: var(--muted);
+      stroke: var(--surface);
+      stroke-width: 7px;
+      paint-order: stroke;
+      font-size: 11px;
+      font-weight: 650;
+      pointer-events: none;
+    }
+    .mind-map-node { cursor: pointer; outline: none; }
+    .mind-map-node rect {
+      fill: var(--surface);
+      stroke: #cbd4e4;
+      stroke-width: 2;
+      filter: drop-shadow(0 6px 12px rgba(23,32,51,.08));
+      transition: fill 150ms ease, stroke 150ms ease, stroke-width 150ms ease;
+    }
+    .mind-map-node:hover rect,
+    .mind-map-node:focus-visible rect {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+    }
+    .mind-map-node.is-selected rect {
+      fill: var(--accent);
+      stroke: var(--accent);
+      stroke-width: 3;
+    }
+    .mind-map-node-label {
+      fill: var(--ink);
+      font-size: 14px;
+      font-weight: 760;
+      pointer-events: none;
+    }
+    .mind-map-node.is-selected .mind-map-node-label { fill: #fff; }
+    .mind-map-details {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .mind-map-details h3 { margin: 8px 0 10px; font-size: 1.15rem; }
+    .mind-map-details p { margin-bottom: 0; color: var(--muted); }
+    .mind-map-detail-note { margin-top: 14px; color: var(--warm) !important; font-size: .82rem; font-weight: 650; }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+    }
+    .section-nav {
+      position: sticky;
+      top: 22px;
+      max-height: calc(100vh - 44px);
+      padding: 22px;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .section-nav h2 { margin-bottom: 16px; font-size: 1rem; }
+    .nav-list, .nav-children { margin: 0; padding: 0; list-style: none; }
+    .nav-children { margin: 7px 0 7px 12px; padding-left: 12px; border-left: 1px solid var(--line); }
+    .section-nav li + li { margin-top: 6px; }
+    .section-nav a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 8px;
+      color: var(--ink);
+      font-size: .86rem;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .section-nav a:hover { color: var(--accent); background: var(--accent-soft); }
+    .section-nav a span { display: block; margin-bottom: 2px; color: var(--muted); font-size: .65rem; text-transform: uppercase; }
+    .paper-sections { min-width: 0; }
+
+    .paper-section {
+      position: relative;
+      margin-bottom: 30px;
+      padding: 34px;
+      scroll-margin-top: 22px;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .paper-section.depth-1 { margin-left: 28px; border-left: 4px solid #b9c5f4; }
+    .paper-section.depth-2 { margin-left: 56px; border-left: 4px solid #d0d8fa; }
+    .paper-section.depth-3 { margin-left: 72px; }
+    .paper-section-header {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 26px;
+    }
+    .section-number {
+      color: var(--accent);
+      font-size: 1.6rem;
+      font-weight: 820;
+      letter-spacing: -.04em;
+    }
+    .section-kind { margin-bottom: 5px; }
+    .paper-section h2 { margin-bottom: 0; font-size: clamp(1.55rem, 3vw, 2.2rem); line-height: 1.14; letter-spacing: -.035em; }
+    .explanation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .explanation-card { padding: 22px; border-radius: 15px; }
+    .paper-voice { border: 1px solid var(--line); background: var(--surface-soft); }
+    .simple-voice { border: 1px solid #d9dfff; background: var(--accent-soft); }
+    .content-label { margin-bottom: 10px; }
+    .explanation-card p, .intuition-card p, .boundary-card p, .equation-card p { margin-bottom: 0; color: var(--muted); }
+    .intuition-card {
+      margin-top: 14px;
+      padding: 20px 22px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px 15px 15px 8px;
+      background: #f8f9ff;
+    }
+    .section-subgroup { margin-top: 28px; }
+    .section-subgroup > h3 { margin-bottom: 14px; font-size: 1.05rem; }
+    .equation-grid, .boundary-grid { display: grid; gap: 12px; }
+    .equation-card, .boundary-card { padding: 18px 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .equation-text {
+      display: block;
+      margin-bottom: 9px;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+      font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+      font-size: .94rem;
+    }
+    .boundary-heading { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .boundary-kind { color: var(--warm); }
+    .basis-label { color: var(--muted); font-size: .65rem; }
+    .inline-sources { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .source-ref {
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-soft);
+      font-size: .72rem;
+    }
+    .source-empty { color: var(--muted); font-size: .75rem; font-style: italic; }
+    .section-sources { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .section-sources > span { color: var(--muted); font-size: .75rem; font-weight: 750; text-transform: uppercase; }
+    .section-sources > div { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .interactive-block { margin-top: 28px; padding: 24px; border: 1px solid #ced7ff; border-radius: var(--radius); background: #fafbff; }
+    .interactive-heading { margin-bottom: 18px; }
+    .interactive-heading h3 { margin: 5px 0 4px; font-size: 1.2rem; }
+    .interactive-heading p { margin-bottom: 0; color: var(--muted); }
+    .control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .guided-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .guided-card { padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .guided-card h4 { margin-bottom: 10px; }
+    .guided-card p { margin-bottom: 6px; color: var(--muted); font-size: .9rem; }
+    .guided-card p:last-child { margin-bottom: 0; }
+    .block-output-section { margin-top: 20px; }
+    .block-output-section > h4 { margin-bottom: 10px; font-size: .9rem; }
+    .intermediate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .intermediate-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .intermediate-card > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+    .live-data { overflow-x: auto; color: var(--ink); font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace; font-size: .82rem; }
+    .visualization-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .visualization-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .visualization-card h4 { margin-bottom: 12px; font-size: .9rem; }
+    .visualization-body { min-height: 120px; overflow-x: auto; }
+    .data-table, .heatmap-table { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+    .data-table td, .heatmap-table td { padding: 7px; border-radius: 6px; font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace; font-size: .76rem; text-align: center; }
+    .data-table td { border: 1px solid var(--line); background: var(--surface-soft); }
+    .heatmap-table td { min-width: 46px; font-weight: 720; }
+    .chart-svg { display: block; width: 100%; min-width: 280px; height: auto; }
+    .chart-axis { stroke: #c7cfdd; stroke-width: 1; }
+    .chart-bar { fill: var(--accent); }
+    .chart-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-point { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+    .chart-label { fill: var(--muted); font-family: system-ui, sans-serif; font-size: 11px; }
+    .pipeline { display: flex; gap: 8px; align-items: stretch; min-width: max-content; }
+    .pipeline-step { display: grid; min-width: 120px; place-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); text-align: center; }
+    .pipeline-step span { display: block; margin-bottom: 5px; color: var(--muted); font-size: .68rem; font-weight: 750; text-transform: uppercase; }
+    .pipeline-step code { font-size: .78rem; }
+    .pipeline-arrow { display: grid; place-items: center; color: var(--accent); font-weight: 800; }
+    .control-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .control-card label, .control-card h4 { color: var(--ink); font-size: .9rem; font-weight: 720; }
+    .control-card h4 { margin-bottom: 12px; }
+    .control-heading, .toggle-label { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+    .control-heading { margin-bottom: 12px; }
+    .control-card output { min-width: 42px; padding: 3px 8px; border-radius: 7px; color: var(--accent); background: var(--accent-soft); font-weight: 750; text-align: center; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    input[type="number"] { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: inherit; }
+    .toggle-control { display: flex; align-items: center; }
+    .toggle-label { width: 100%; cursor: pointer; }
+    .toggle-switch { position: relative; flex: 0 0 auto; width: 48px; height: 28px; }
+    .toggle-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .toggle-track { display: block; width: 100%; height: 100%; border-radius: 999px; background: #aeb7c7; transition: background 160ms ease; }
+    .toggle-track::after { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px rgba(23,32,51,.25); content: ""; transition: transform 160ms ease; }
+    .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+    .matrix-scroll { overflow-x: auto; }
+    .matrix-control table { width: 100%; border-spacing: 7px; table-layout: fixed; }
+    .matrix-control td { padding: 0; }
+    .runtime-error { margin: 0 0 20px 294px; padding: 14px 16px; border: 1px solid #e4a6a6; border-radius: 10px; color: #8d2020; background: #fff0f0; font-weight: 650; }
+    .empty-state { color: var(--muted); }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .footer-note { margin: 34px 0 0; color: var(--muted); font-size: .82rem; text-align: center; }
+
+    @media (max-width: 960px) {
+      .outcome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .mind-map-shell { grid-template-columns: 1fr; }
+      .content-layout { grid-template-columns: 1fr; }
+      .section-nav { position: static; max-height: none; }
+      .runtime-error { margin-left: 0; }
+    }
+    @media (max-width: 720px) {
+      .page-shell { width: min(100% - 28px, 1180px); }
+      .hero { padding: 62px 0 52px; }
+      .document { padding-top: 42px; }
+      .section-heading, .outcome-grid, .explanation-grid, .control-grid, .guided-grid, .intermediate-grid, .visualization-grid { grid-template-columns: 1fr; }
+      .section-heading { gap: 10px; }
+      .paper-section { padding: 24px; }
+      .paper-section.depth-1, .paper-section.depth-2, .paper-section.depth-3 { margin-left: 0; }
+      .paper-section-header { grid-template-columns: 1fr; gap: 5px; }
+      .section-sources { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" data-section="header">
+    <div class="page-shell hero-content">
+      <p class="eyebrow">Paper learning document</p>
+      <h1>A teaching edition of Query-Dependent Weighted Memory</h1>
+      <p class="subtitle">From fixed averaging to a query-dependent weighted readout</p>
+      <div class="hero-stats" aria-label="Document summary">
+        <span class="hero-stat">7 sections</span>
+        <span class="hero-stat">5 learning outcomes</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell document">
+    <section class="learning-outcomes" data-section="learning-outcomes">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Learning goals</p>
+          <h2>What you will be able to do</h2>
+        </div>
+        <p>Use these outcomes to orient your reading and check what each part of the paper contributes.</p>
+      </div>
+      <ol class="outcome-grid">
+        <li class="outcome-card">
+          <span class="outcome-level">understand</span>
+          <p>Explain why uniform averaging cannot respond to a changed query when stored values stay fixed.</p>
+        </li>
+        
+        <li class="outcome-card">
+          <span class="outcome-level">understand</span>
+          <p>Distinguish the roles of query, keys, scores, weights, and values.</p>
+        </li>
+        
+        <li class="outcome-card">
+          <span class="outcome-level">apply</span>
+          <p>Calculate a small weighted sum and identify the equal-score case as the ordinary mean.</p>
+        </li>
+        
+        <li class="outcome-card">
+          <span class="outcome-level">analyze</span>
+          <p>Trace which quantities can change when the query, keys, or values change.</p>
+        </li>
+        
+        <li class="outcome-card">
+          <span class="outcome-level">analyze</span>
+          <p>Separate algebraic consequences from unsupported empirical claims.</p>
+        </li>
+        </ol>
+    </section>
+
+    
+      <section class="mind-map-section" data-section="mind-map" aria-labelledby="mind-map-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Concept graph</p>
+            <h2 id="mind-map-title">How the ideas connect</h2>
+          </div>
+          <p>Select a concept to see its summary and move to its linked paper section.</p>
+        </div>
+        <div class="mind-map-shell">
+          <div class="mind-map-canvas">
+            <svg class="mind-map-svg" viewBox="0 0 1018 804" role="img" aria-label="Concept relationship map">
+              <defs>
+                <marker id="mind-map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z"></path>
+                </marker>
+              </defs>
+              <g class="mind-map-edges">
+            <g class="mind-map-edge">
+              <title>provides mathematical background for · Basis: background</title>
+              <path id="mind-map-edge-1" class="mind-map-edge-path" d="M 187.0 146 C 187.0 202.0, 831.0 202.0, 831.0 258" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="509.0" y="195.0" text-anchor="middle">provides mathematical background for</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>motivates · Basis: source_supported · Sources: s_problem, s_intro</title>
+              <path id="mind-map-edge-2" class="mind-map-edge-path" d="M 706.0 102.0 C 664.0 56.0, 676.0 56.0, 634.0 102.0" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="670.0" y="53.0" text-anchor="middle">motivates</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>is implemented through · Basis: source_supported · Sources: s_method</title>
+              <path id="mind-map-edge-3" class="mind-map-edge-path" d="M 509.0 146 C 509.0 202.0, 187.0 202.0, 187.0 258" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="348.0" y="195.0" text-anchor="middle">is implemented through</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>supplies scores to · Basis: source_supported · Sources: s_formula</title>
+              <path id="mind-map-edge-4" class="mind-map-edge-path" d="M 312.0 302.0 C 354.0 256.0, 342.0 256.0, 384.0 302.0" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="348.0" y="253.0" text-anchor="middle">supplies scores to</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>provides coefficients for · Basis: source_supported · Sources: s_formula</title>
+              <path id="mind-map-edge-5" class="mind-map-edge-path" d="M 634.0 302.0 C 676.0 256.0, 664.0 256.0, 706.0 302.0" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="670.0" y="253.0" text-anchor="middle">provides coefficients for</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>becomes uniform when scores agree · Basis: source_supported · Sources: s_observations</title>
+              <path id="mind-map-edge-6" class="mind-map-edge-path" d="M 509.0 346 C 509.0 402.0, 187.0 402.0, 187.0 458" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="348.0" y="395.0" text-anchor="middle">becomes uniform when scores agree</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>recovers exactly · Basis: source_supported · Sources: s_observations</title>
+              <path id="mind-map-edge-7" class="mind-map-edge-path" d="M 187.0 458 C 187.0 302.0, 831.0 302.0, 831.0 146" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="509.0" y="295.0" text-anchor="middle">recovers exactly</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>determines coefficients without using values · Basis: source_supported · Sources: s_observations</title>
+              <path id="mind-map-edge-8" class="mind-map-edge-path" d="M 187.0 346 C 187.0 402.0, 509.0 402.0, 509.0 458" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="348.0" y="395.0" text-anchor="middle">determines coefficients without using…</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>separates coefficient formation from · Basis: derived · Sources: s_formula, s_observations</title>
+              <path id="mind-map-edge-9" class="mind-map-edge-path" d="M 509.0 458 C 509.0 402.0, 831.0 402.0, 831.0 346" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="670.0" y="395.0" text-anchor="middle">separates coefficient formation from</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>has properties that do not establish usefulness · Basis: source_supported · Sources: s_limits</title>
+              <path id="mind-map-edge-10" class="mind-map-edge-path" d="M 831.0 346 C 831.0 402.0, 831.0 402.0, 831.0 458" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="831.0" y="395.0" text-anchor="middle">has properties that do not establish…</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>limits the scope of · Basis: source_supported · Sources: s_limits, s_conclusion</title>
+              <path id="mind-map-edge-11" class="mind-map-edge-path" d="M 831.0 546 C 831.0 602.0, 509.0 602.0, 509.0 658" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="670.0" y="595.0" text-anchor="middle">limits the scope of</text>
+            </g>
+            
+            <g class="mind-map-edge">
+              <title>is specified but not empirically evaluated in · Basis: source_supported · Sources: s_conclusion</title>
+              <path id="mind-map-edge-12" class="mind-map-edge-path" d="M 509.0 146 C 509.0 402.0, 509.0 402.0, 509.0 658" marker-end="url(#mind-map-arrow)"></path>
+              <text class="mind-map-edge-label" x="509.0" y="395.0" text-anchor="middle">is specified but not empirically eval…</text>
+            </g>
+            </g>
+              <g class="mind-map-nodes">
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Weighted-sum background" data-concept-id="weighted_sum_background"
+               data-concept-name="Weighted-sum background" data-concept-summary="Coefficients set each value&#x27;s arithmetic contribution."
+               data-section-target="section-1">
+              <rect x="62.0" y="58" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="187.0" y="102.0">Weighted-sum background</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Query-dependent memory reading" data-concept-id="query_dependent_reading"
+               data-concept-name="Query-dependent memory reading" data-concept-summary="The paper asks for a readout that can change with the current request."
+               data-section-target="section-2">
+              <rect x="384.0" y="58" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="509.0" y="92.0">Query-dependent memory</tspan><tspan x="509.0" y="112.0">reading</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Uniform averaging baseline" data-concept-id="uniform_averaging"
+               data-concept-name="Uniform averaging baseline" data-concept-summary="Fixed equal coefficients ignore the query."
+               data-section-target="section-3">
+              <rect x="706.0" y="58" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="831.0" y="92.0">Uniform averaging</tspan><tspan x="831.0" y="112.0">baseline</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Query-key matching" data-concept-id="query_key_matching"
+               data-concept-name="Query-key matching" data-concept-summary="Scaled dot products produce compatibility scores."
+               data-section-target="section-4">
+              <rect x="62.0" y="258" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="187.0" y="302.0">Query-key matching</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Normalized coefficients" data-concept-id="normalized_coefficients"
+               data-concept-name="Normalized coefficients" data-concept-summary="Softmax turns scores into shares summing to one."
+               data-section-target="section-4">
+              <rect x="384.0" y="258" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="509.0" y="302.0">Normalized coefficients</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Weighted value readout" data-concept-id="value_readout"
+               data-concept-name="Weighted value readout" data-concept-summary="Coefficients combine value rows into an output."
+               data-section-target="section-4">
+              <rect x="706.0" y="258" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="831.0" y="302.0">Weighted value readout</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Equal scores recover the mean" data-concept-id="equal_score_mean"
+               data-concept-name="Equal scores recover the mean" data-concept-summary="Equal scores produce coefficients of 1/n."
+               data-section-target="section-5">
+              <rect x="62.0" y="458" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="187.0" y="492.0">Equal scores recover the</tspan><tspan x="187.0" y="512.0">mean</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Matching and content have separate roles" data-concept-id="matching_content_separation"
+               data-concept-name="Matching and content have separate roles" data-concept-summary="Changing values alone leaves the coefficients unchanged."
+               data-section-target="section-5">
+              <rect x="384.0" y="458" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="509.0" y="492.0">Matching and content</tspan><tspan x="509.0" y="512.0">have separate roles</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for Algebraic evidence boundary" data-concept-id="evidence_boundary"
+               data-concept-name="Algebraic evidence boundary" data-concept-summary="Mathematical properties do not establish usefulness."
+               data-section-target="section-6">
+              <rect x="706.0" y="458" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="831.0" y="492.0">Algebraic evidence</tspan><tspan x="831.0" y="512.0">boundary</tspan></text>
+            </g>
+            
+            <g class="mind-map-node" tabindex="0" role="button"
+               aria-label="Open section for A defined mechanism, an open application question" data-concept-id="bounded_conclusion"
+               data-concept-name="A defined mechanism, an open application question" data-concept-summary="Query-dependent coefficients are specified; usefulness remains unevaluated."
+               data-section-target="section-7">
+              <rect x="384.0" y="658" width="250" height="88" rx="16"></rect>
+              <text class="mind-map-node-label" text-anchor="middle"><tspan x="509.0" y="682.0">A defined mechanism, an</tspan><tspan x="509.0" y="702.0">open application</tspan><tspan x="509.0" y="722.0">question</tspan></text>
+            </g>
+            </g>
+            </svg>
+          </div>
+          <aside class="mind-map-details" id="mind-map-details" aria-live="polite">
+            <span class="content-label">Selected concept</span>
+            <h3 id="mind-map-detail-name">Select a concept</h3>
+            <p id="mind-map-detail-summary">Choose any node in the map to inspect its summary.</p>
+            <p id="mind-map-detail-note" class="mind-map-detail-note" hidden></p>
+          </aside>
+        </div>
+      </section>
+    
+
+    <p id="runtime-error" class="runtime-error" role="alert" hidden></p>
+
+    <div class="content-layout">
+      <nav class="section-nav" aria-label="Paper sections">
+        <h2>On this page</h2>
+        <ol class="nav-list">
+            <li>
+              <a href="#section-1"><span>prerequisites</span>Before the paper: vectors and weighted sums</a>
+              
+            </li>
+            
+            <li>
+              <a href="#section-2"><span>introduction</span>The paper&#x27;s question: can a memory read depend on the request?</a>
+              <ol class="nav-children">
+            <li>
+              <a href="#section-3"><span>problem</span>The problem with always taking the same mean</a>
+              
+            </li>
+            
+            <li>
+              <a href="#section-4"><span>method</span>The proposed solution: compare, normalize, combine</a>
+              <ol class="nav-children">
+            <li>
+              <a href="#section-5"><span>results</span>What the equations establish</a>
+              
+            </li>
+            </ol>
+            </li>
+            
+            <li>
+              <a href="#section-6"><span>discussion</span>What the paper does not establish</a>
+              
+            </li>
+            </ol>
+            </li>
+            
+            <li>
+              <a href="#section-7"><span>conclusion</span>The conclusion: a defined mechanism and an open application question</a>
+              
+            </li>
+            </ol>
+      </nav>
+      <div class="paper-sections">
+      <article class="paper-section depth-0" id="section-1" data-section-id="prerequisite_tools">
+        <header class="paper-section-header">
+          <div class="section-number">01</div>
+          <div>
+            <span class="section-kind">prerequisites</span>
+            <h2>Before the paper: vectors and weighted sums</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>This teaching section supplies mathematical background rather than reporting a section of the fictional paper. A weighted sum gives each value a coefficient before adding the contributions.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>Separate deciding how much each record contributes from combining its contents. Equal coefficients produce an ordinary average.</p>
+          </section>
+        </div>
+
+        
+          <aside class="intuition-card">
+            <span class="content-label">Intuition · background</span>
+            <p>A weighted average preserves averaging while allowing unequal shares.</p>
+            <div class="inline-sources"><span class="source-empty">Background / no direct source reference</span></div>
+          </aside>
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">simplification</span>
+                <span class="basis-label">background</span>
+              </div>
+              <p>The small examples introduce the arithmetic; paper value rows may contain several coordinates.</p>
+              <div class="inline-sources"><span class="source-empty">Background / no direct source reference</span></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><span class="source-empty">Background / no direct source reference</span></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-0" id="section-2" data-section-id="paper_introduction">
+        <header class="paper-section-header">
+          <div class="section-number">02</div>
+          <div>
+            <span class="section-kind">introduction</span>
+            <h2>The paper&#x27;s question: can a memory read depend on the request?</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>The paper considers paired keys and values and asks for a transparent rule whose output can depend on a supplied query.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>The same collection can be read differently for different requests because matching information is separated from returned content.</p>
+          </section>
+        </div>
+
+        
+          <aside class="intuition-card">
+            <span class="content-label">Intuition · analogy</span>
+            <p>Imagine notes with labels and contents: compare a request with labels, then combine contents.</p>
+            <div class="inline-sources"><span class="source-empty">Background / no direct source reference</span></div>
+          </aside>
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">assumption</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>The query, keys, and values are supplied inputs; their learning is outside the paper.</p>
+              <div class="inline-sources"><code class="source-ref">s_intro</code><code class="source-ref">s_limits</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_intro</code></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-1" id="section-3" data-section-id="averaging_problem" data-parent-id="paper_introduction">
+        <header class="paper-section-header">
+          <div class="section-number">03</div>
+          <div>
+            <span class="section-kind">problem</span>
+            <h2>The problem with always taking the same mean</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>The baseline adds stored values and divides by their count. Its equal coefficients contain no query-dependent term.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>The mean is not wrong; it answers a fixed question rather than one whose coefficients depend on the request.</p>
+          </section>
+        </div>
+
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">limitation</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>Uniform averaging remains suitable when equal contributions are intended.</p>
+              <div class="inline-sources"><code class="source-ref">s_problem</code><code class="source-ref">s_limits</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_problem</code></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-1" id="section-4" data-section-id="proposed_reader" data-parent-id="paper_introduction">
+        <header class="paper-section-header">
+          <div class="section-number">04</div>
+          <div>
+            <span class="section-kind">method</span>
+            <h2>The proposed solution: compare, normalize, combine</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>Scaled query-key dot products produce scores, softmax turns scores into coefficients, and those coefficients combine the corresponding values.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>Keys are used for comparison and values supply content. The calculation keeps those two roles distinct.</p>
+          </section>
+        </div>
+
+        
+        
+          <div class="section-subgroup">
+            <h3>Key equations</h3>
+            <div class="equation-grid">
+            <article class="equation-card">
+              <code class="equation-text">s_i = \frac{q \cdot k_i}{\sqrt{d_k}}</code>
+              <p>Compare the query with each key using the source&#x27;s scale.</p>
+              <div class="inline-sources"><code class="source-ref">s_formula</code></div>
+            </article>
+            
+            <article class="equation-card">
+              <code class="equation-text">a_i = \frac{\exp(s_i)}{\sum_j \exp(s_j)}</code>
+              <p>Convert scores into positive coefficients that sum to one.</p>
+              <div class="inline-sources"><code class="source-ref">s_formula</code></div>
+            </article>
+            
+            <article class="equation-card">
+              <code class="equation-text">y = aV</code>
+              <p>Use the coefficients to combine the value rows.</p>
+              <div class="inline-sources"><code class="source-ref">s_formula</code></div>
+            </article>
+            </div>
+          </div>
+        
+        
+      <section class="interactive-block" data-interactive-block-id="query_dependent_reader_demo">
+        <div class="interactive-heading">
+          <span class="content-label">Interactive block</span>
+          <h3>Explore the weighted-memory calculation</h3>
+          <p>Change the inputs to recompute this block's data context.</p>
+        </div>
+        <div class="control-grid">
+      <article class="control-card lesson-control matrix-control" id="block_4_1__control_1" data-control-id="block_4_1__control_1" data-control-type="matrix_editor" data-variable="block_4_1.q">
+        <h4>Query vector</h4>
+        <div class="matrix-scroll">
+          <table aria-label="Query vector"><tbody><tr>
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_1-r0-c0">Query vector, row 1, column 1</label>
+                  <input id="block_4_1__control_1-r0-c0" type="number" step="any" value="1.0" data-row="0" data-column="0">
+                </td>
+                
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_1-r0-c1">Query vector, row 1, column 2</label>
+                  <input id="block_4_1__control_1-r0-c1" type="number" step="any" value="0.0" data-row="0" data-column="1">
+                </td>
+                </tr></tbody></table>
+        </div>
+      </article>
+    
+      <article class="control-card lesson-control matrix-control" id="block_4_1__control_2" data-control-id="block_4_1__control_2" data-control-type="matrix_editor" data-variable="block_4_1.keys">
+        <h4>Key matrix</h4>
+        <div class="matrix-scroll">
+          <table aria-label="Key matrix"><tbody><tr>
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_2-r0-c0">Key matrix, row 1, column 1</label>
+                  <input id="block_4_1__control_2-r0-c0" type="number" step="any" value="1.0" data-row="0" data-column="0">
+                </td>
+                
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_2-r0-c1">Key matrix, row 1, column 2</label>
+                  <input id="block_4_1__control_2-r0-c1" type="number" step="any" value="0.0" data-row="0" data-column="1">
+                </td>
+                </tr><tr>
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_2-r1-c0">Key matrix, row 2, column 1</label>
+                  <input id="block_4_1__control_2-r1-c0" type="number" step="any" value="0.0" data-row="1" data-column="0">
+                </td>
+                
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_2-r1-c1">Key matrix, row 2, column 2</label>
+                  <input id="block_4_1__control_2-r1-c1" type="number" step="any" value="1.0" data-row="1" data-column="1">
+                </td>
+                </tr></tbody></table>
+        </div>
+      </article>
+    
+      <article class="control-card lesson-control matrix-control" id="block_4_1__control_3" data-control-id="block_4_1__control_3" data-control-type="matrix_editor" data-variable="block_4_1.values">
+        <h4>Value matrix</h4>
+        <div class="matrix-scroll">
+          <table aria-label="Value matrix"><tbody><tr>
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_3-r0-c0">Value matrix, row 1, column 1</label>
+                  <input id="block_4_1__control_3-r0-c0" type="number" step="any" value="2.0" data-row="0" data-column="0">
+                </td>
+                </tr><tr>
+                <td>
+                  <label class="visually-hidden" for="block_4_1__control_3-r1-c0">Value matrix, row 2, column 1</label>
+                  <input id="block_4_1__control_3-r1-c0" type="number" step="any" value="8.0" data-row="1" data-column="0">
+                </td>
+                </tr></tbody></table>
+        </div>
+      </article>
+    
+      <article class="control-card lesson-control" data-control-id="block_4_1__control_4" data-control-type="slider" data-variable="block_4_1.d_k">
+        <div class="control-heading">
+          <label for="block_4_1__control_4">Key dimension</label>
+          <output id="block_4_1__control_4-value" for="block_4_1__control_4">2</output>
+        </div>
+        <input id="block_4_1__control_4" type="range" value="2" min="1" max="8" step="1">
+      </article>
+    
+      <article class="control-card lesson-control toggle-control" data-control-id="block_4_1__control_5" data-control-type="toggle" data-variable="block_4_1.apply_scaling">
+        <label class="toggle-label" for="block_4_1__control_5">
+          <span>Apply score scaling</span>
+          <span class="toggle-switch">
+            <input id="block_4_1__control_5" type="checkbox" checked>
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </article>
+    </div>
+        <div class="block-output-section">
+          <h4>Intermediate values</h4>
+          <div class="intermediate-grid">
+            <article class="intermediate-card">
+              <span>Raw scores</span>
+              <div id="block_4_1__intermediate_1" class="live-data" aria-live="polite"></div>
+            </article>
+            
+            <article class="intermediate-card">
+              <span>Normalized coefficients</span>
+              <div id="block_4_1__intermediate_2" class="live-data" aria-live="polite"></div>
+            </article>
+            
+            <article class="intermediate-card">
+              <span>Readout</span>
+              <div id="block_4_1__intermediate_3" class="live-data" aria-live="polite"></div>
+            </article>
+            </div>
+        </div>
+        <div class="block-output-section">
+          <h4>Visual explanations</h4>
+          <div class="visualization-grid">
+            <article class="visualization-card" data-visualization-id="weight_heatmap" data-visualization-type="heatmap">
+              <h4>Normalized coefficients</h4>
+              <div id="block_4_1__visualization_1" class="visualization-body" aria-live="polite"></div>
+            </article>
+            
+            <article class="visualization-card" data-visualization-id="readout_matrix" data-visualization-type="matrix_display">
+              <h4>Weighted readout</h4>
+              <div id="block_4_1__visualization_2" class="visualization-body" aria-live="polite"></div>
+            </article>
+            
+            <article class="visualization-card" data-visualization-id="reader_pipeline" data-visualization-type="step_pipeline">
+              <h4>Compare, normalize, combine</h4>
+              <div id="block_4_1__visualization_3" class="visualization-body" aria-live="polite"></div>
+            </article>
+            </div>
+        </div>
+        <div class="guided-grid">
+        <article class="guided-card">
+          <h4>Change the query</h4>
+          <p><strong>Try:</strong> Change the query entries while leaving keys and values fixed.</p>
+          <p><strong>Observe:</strong> Watch which score and coefficient changes.</p>
+          <p><strong>Why:</strong> The query participates in matching and can therefore alter the coefficients.</p>
+        </article>
+        
+        <article class="guided-card">
+          <h4>Change only the values</h4>
+          <p><strong>Try:</strong> Edit the value rows without changing the query or keys.</p>
+          <p><strong>Observe:</strong> The coefficients stay fixed while the readout changes.</p>
+          <p><strong>Why:</strong> Values enter only the final weighted combination in this model.</p>
+        </article>
+        </div>
+      </section>
+    
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">assumption</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>Query width equals key-row width, and key and value row counts match.</p>
+              <div class="inline-sources"><code class="source-ref">s_method</code><code class="source-ref">s_formula</code></div>
+            </article>
+            
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">simplification</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>The definition uses one query and has no masking, learned projection, or multiple heads.</p>
+              <div class="inline-sources"><code class="source-ref">s_method</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_method</code><code class="source-ref">s_formula</code></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-2" id="section-5" data-section-id="algebraic_observations" data-parent-id="proposed_reader">
+        <header class="paper-section-header">
+          <div class="section-number">05</div>
+          <div>
+            <span class="section-kind">results</span>
+            <h2>What the equations establish</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>Equal scores give coefficients of 1/n, while changing values alone leaves the coefficients unchanged.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>Equal scores mean equal shares. Matching determines shares before values are combined.</p>
+          </section>
+        </div>
+
+        
+          <aside class="intuition-card">
+            <span class="content-label">Intuition · derived</span>
+            <p>Read the formula as a dependency chain from scores to coefficients to readout.</p>
+            <div class="inline-sources"><code class="source-ref">s_formula</code></div>
+          </aside>
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">limitation</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>These observations are algebraic consequences, not empirical results.</p>
+              <div class="inline-sources"><code class="source-ref">s_observations</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_observations</code><code class="source-ref">s_formula</code></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-1" id="section-6" data-section-id="evidence_limits" data-parent-id="paper_introduction">
+        <header class="paper-section-header">
+          <div class="section-number">06</div>
+          <div>
+            <span class="section-kind">discussion</span>
+            <h2>What the paper does not establish</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>The paper provides no dataset, benchmark, learned parameters, or empirical comparison.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>The calculation can be checked without pretending that a real application has been validated.</p>
+          </section>
+        </div>
+
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">limitation</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>No empirical evaluation is available in the source.</p>
+              <div class="inline-sources"><code class="source-ref">s_limits</code></div>
+            </article>
+            
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">misconception</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>The coefficients are not a complete explanation of a larger system&#x27;s decisions.</p>
+              <div class="inline-sources"><code class="source-ref">s_limits</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_limits</code><code class="source-ref">s_formula</code></div>
+        </footer>
+      </article>
+    
+      <article class="paper-section depth-0" id="section-7" data-section-id="paper_conclusion">
+        <header class="paper-section-header">
+          <div class="section-number">07</div>
+          <div>
+            <span class="section-kind">conclusion</span>
+            <h2>The conclusion: a defined mechanism and an open application question</h2>
+          </div>
+        </header>
+
+        <div class="explanation-grid">
+          <section class="explanation-card paper-voice">
+            <span class="content-label">From the paper</span>
+            <p>The paper replaces fixed equal coefficients with coefficients computed from query-key scores while leaving empirical usefulness unresolved.</p>
+          </section>
+          <section class="explanation-card simple-voice">
+            <span class="content-label">In plain language</span>
+            <p>The mechanism has inspectable mathematical properties, but usefulness still requires evidence.</p>
+          </section>
+        </div>
+
+        
+        
+        
+
+        <div class="section-subgroup">
+          <h3>Boundaries &amp; assumptions</h3>
+          <div class="boundary-grid">
+            <article class="boundary-card">
+              <div class="boundary-heading">
+                <span class="boundary-kind">limitation</span>
+                <span class="basis-label">source_supported</span>
+              </div>
+              <p>Whether the reader is useful for an application remains open.</p>
+              <div class="inline-sources"><code class="source-ref">s_conclusion</code></div>
+            </article>
+            </div>
+        </div>
+
+        <footer class="section-sources">
+          <span>Section sources</span>
+          <div><code class="source-ref">s_conclusion</code><code class="source-ref">s_limits</code></div>
+        </footer>
+      </article>
+    </div>
+    </div>
+    <p class="footer-note">Generated as a self-contained paper learning document.</p>
+  </main>
+
+  <script type="application/json" id="lesson-initial-state">{"block_4_1.q":[[1.0,0.0]],"block_4_1.keys":[[1.0,0.0],[0.0,1.0]],"block_4_1.values":[[2.0],[8.0]],"block_4_1.d_k":2,"block_4_1.apply_scaling":true}</script>
+  <script type="application/json" id="lesson-computations">[{"id":"block_4_1.raw_scores","op":"matmul_transpose","inputs":["block_4_1.q","block_4_1.keys"]},{"id":"block_4_1.scale","op":"sqrt","inputs":["block_4_1.d_k"]},{"id":"block_4_1.selected_scores","op":"divide","inputs":["block_4_1.raw_scores","block_4_1.scale"],"condition":"block_4_1.apply_scaling","otherwise":"block_4_1.raw_scores"},{"id":"block_4_1.weights","op":"row_softmax","inputs":["block_4_1.selected_scores"]},{"id":"block_4_1.readout","op":"matrix_multiply","inputs":["block_4_1.weights","block_4_1.values"]}]</script>
+  <script type="application/json" id="lesson-outputs">{"intermediate_values":[{"element_id":"block_4_1__intermediate_1","data":"block_4_1.raw_scores","label":"Raw scores"},{"element_id":"block_4_1__intermediate_2","data":"block_4_1.weights","label":"Normalized coefficients"},{"element_id":"block_4_1__intermediate_3","data":"block_4_1.readout","label":"Readout"}],"visualizations":[{"element_id":"block_4_1__visualization_1","type":"heatmap","data":"block_4_1.weights","labels":["weights"]},{"element_id":"block_4_1__visualization_2","type":"matrix_display","data":"block_4_1.readout","labels":["readout"]},{"element_id":"block_4_1__visualization_3","type":"step_pipeline","data":["block_4_1.raw_scores","block_4_1.selected_scores","block_4_1.weights","block_4_1.readout"],"labels":["Raw scores","Scaled scores","Weights","Readout"]}]}</script>
+  <script>
+(function () {
+  "use strict";
+
+  function readEmbeddedJson(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      throw new Error("Missing embedded data element '" + elementId + "'");
+    }
+    try {
+      return JSON.parse(element.textContent);
+    } catch (error) {
+      throw new Error("Invalid JSON in embedded data element '" + elementId + "'");
+    }
+  }
+
+  function isFiniteNumber(value) {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+
+  function shapeOf(value, label) {
+    if (isFiniteNumber(value)) {
+      return [];
+    }
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error(label + " must be a finite number or a non-empty numeric array");
+    }
+    if (value.every(isFiniteNumber)) {
+      return [value.length];
+    }
+    if (!value.every(Array.isArray)) {
+      throw new Error(label + " contains mixed or invalid numeric values");
+    }
+
+    const width = value[0].length;
+    if (width === 0) {
+      throw new Error(label + " contains an empty matrix row");
+    }
+    value.forEach(function (row) {
+      if (row.length !== width) {
+        throw new Error(label + " must be a rectangular matrix");
+      }
+      if (!row.every(isFiniteNumber)) {
+        throw new Error(label + " contains an invalid numeric value");
+      }
+    });
+    return [value.length, width];
+  }
+
+  function sameShape(leftShape, rightShape) {
+    return leftShape.length === rightShape.length && leftShape.every(function (size, index) {
+      return size === rightShape[index];
+    });
+  }
+
+  function mapNumeric(value, transform) {
+    if (isFiniteNumber(value)) {
+      return transform(value);
+    }
+    return value.map(function (item) {
+      return mapNumeric(item, transform);
+    });
+  }
+
+  function binaryElementwise(left, right, transform, operationName) {
+    const leftShape = shapeOf(left, operationName + " left input");
+    const rightShape = shapeOf(right, operationName + " right input");
+
+    if (leftShape.length === 0 && rightShape.length === 0) {
+      return transform(left, right);
+    }
+    if (leftShape.length === 0) {
+      return mapNumeric(right, function (value) {
+        return transform(left, value);
+      });
+    }
+    if (rightShape.length === 0) {
+      return mapNumeric(left, function (value) {
+        return transform(value, right);
+      });
+    }
+    if (!sameShape(leftShape, rightShape)) {
+      throw new Error(
+        operationName + " dimension mismatch: [" + leftShape + "] versus [" + rightShape + "]"
+      );
+    }
+    return left.map(function (value, index) {
+      return binaryElementwise(value, right[index], transform, operationName);
+    });
+  }
+
+  function add(left, right) {
+    return binaryElementwise(left, right, function (a, b) {
+      return a + b;
+    }, "add");
+  }
+
+  function subtract(left, right) {
+    return binaryElementwise(left, right, function (a, b) {
+      return a - b;
+    }, "subtract");
+  }
+
+  function multiply(left, right) {
+    return binaryElementwise(left, right, function (a, b) {
+      return a * b;
+    }, "multiply");
+  }
+
+  function divide(left, right) {
+    return binaryElementwise(left, right, function (a, b) {
+      if (b === 0) {
+        throw new Error("divide cannot use a zero divisor");
+      }
+      return a / b;
+    }, "divide");
+  }
+
+  function squareRoot(value) {
+    shapeOf(value, "sqrt input");
+    return mapNumeric(value, function (item) {
+      if (item < 0) {
+        throw new Error("sqrt cannot use a negative input");
+      }
+      return Math.sqrt(item);
+    });
+  }
+
+  function sum(value) {
+    shapeOf(value, "sum input");
+    if (isFiniteNumber(value)) {
+      return value;
+    }
+    return value.reduce(function (total, item) {
+      return total + sum(item);
+    }, 0);
+  }
+
+  function normalize(value) {
+    shapeOf(value, "normalize input");
+    const total = sum(value);
+    if (total === 0) {
+      throw new Error("normalize cannot use values that sum to zero");
+    }
+    return mapNumeric(value, function (item) {
+      return item / total;
+    });
+  }
+
+  function softmax(vector) {
+    const shape = shapeOf(vector, "softmax input");
+    if (shape.length !== 1) {
+      throw new Error("softmax requires a vector");
+    }
+    const maximum = Math.max.apply(null, vector);
+    const exponentials = vector.map(function (value) {
+      return Math.exp(value - maximum);
+    });
+    const total = exponentials.reduce(function (result, value) {
+      return result + value;
+    }, 0);
+    return exponentials.map(function (value) {
+      return value / total;
+    });
+  }
+
+  function rowSoftmax(matrix) {
+    const shape = shapeOf(matrix, "row_softmax input");
+    if (shape.length !== 2) {
+      throw new Error("row_softmax requires a matrix");
+    }
+    return matrix.map(softmax);
+  }
+
+  function transpose(matrix) {
+    const shape = shapeOf(matrix, "transpose input");
+    if (shape.length !== 2) {
+      throw new Error("transpose requires a matrix");
+    }
+    return Array.from({ length: shape[1] }, function (_, column) {
+      return matrix.map(function (row) {
+        return row[column];
+      });
+    });
+  }
+
+  function matrixMultiply(left, right) {
+    const leftShape = shapeOf(left, "matrix_multiply left input");
+    const rightShape = shapeOf(right, "matrix_multiply right input");
+    if (leftShape.length !== 2 || rightShape.length !== 2) {
+      throw new Error("matrix_multiply requires two matrices");
+    }
+    if (leftShape[1] !== rightShape[0]) {
+      throw new Error(
+        "matrix_multiply dimension mismatch: [" + leftShape + "] cannot multiply [" + rightShape + "]"
+      );
+    }
+
+    return left.map(function (leftRow) {
+      return Array.from({ length: rightShape[1] }, function (_, column) {
+        return leftRow.reduce(function (total, value, index) {
+          return total + value * right[index][column];
+        }, 0);
+      });
+    });
+  }
+
+  function matmulTranspose(left, right) {
+    const leftShape = shapeOf(left, "matmul_transpose left input");
+    const rightShape = shapeOf(right, "matmul_transpose right input");
+    if (leftShape.length !== 2 || rightShape.length !== 2) {
+      throw new Error("matmul_transpose requires two matrices");
+    }
+    if (leftShape[1] !== rightShape[1]) {
+      throw new Error(
+        "matmul_transpose dimension mismatch: [" + leftShape + "] cannot multiply the transpose of [" + rightShape + "]"
+      );
+    }
+    return left.map(function (leftRow) {
+      return right.map(function (rightRow) {
+        return leftRow.reduce(function (total, value, index) {
+          return total + value * rightRow[index];
+        }, 0);
+      });
+    });
+  }
+
+  const operationRegistry = Object.freeze({
+    add: add,
+    subtract: subtract,
+    multiply: multiply,
+    divide: divide,
+    sqrt: squareRoot,
+    sum: sum,
+    normalize: normalize,
+    softmax: softmax,
+    row_softmax: rowSoftmax,
+    transpose: transpose,
+    matrix_multiply: matrixMultiply,
+    matmul_transpose: matmulTranspose,
+  });
+
+  const operationArity = Object.freeze({
+    add: 2,
+    subtract: 2,
+    multiply: 2,
+    divide: 2,
+    sqrt: 1,
+    sum: 1,
+    normalize: 1,
+    softmax: 1,
+    row_softmax: 1,
+    transpose: 1,
+    matrix_multiply: 2,
+    matmul_transpose: 2,
+  });
+
+  const dataContext = readEmbeddedJson("lesson-initial-state");
+  const computationDefinitions = readEmbeddedJson("lesson-computations");
+  const outputDefinitions = readEmbeddedJson("lesson-outputs");
+  const variableIds = new Set(Object.keys(dataContext));
+  const computationIds = [];
+  const knownComputationIds = new Set();
+
+  computationDefinitions.forEach(function (definition) {
+    if (variableIds.has(definition.id)) {
+      throw new Error("Computation id '" + definition.id + "' conflicts with a variable id");
+    }
+    if (knownComputationIds.has(definition.id)) {
+      throw new Error("Duplicate computation id '" + definition.id + "'");
+    }
+    knownComputationIds.add(definition.id);
+    computationIds.push(definition.id);
+  });
+
+  function resolveId(id, computationId) {
+    if (!Object.prototype.hasOwnProperty.call(dataContext, id)) {
+      throw new Error("Computation '" + computationId + "' references missing ID '" + id + "'");
+    }
+    return dataContext[id];
+  }
+
+  function executeComputation(definition) {
+    if (definition.condition !== undefined) {
+      const condition = resolveId(definition.condition, definition.id);
+      if (typeof condition !== "boolean") {
+        throw new Error("Computation '" + definition.id + "' condition must resolve to a boolean");
+      }
+      if (!condition) {
+        return resolveId(definition.otherwise, definition.id);
+      }
+    }
+
+    const operation = operationRegistry[definition.op];
+    if (!operation) {
+      throw new Error("Computation '" + definition.id + "' uses unsupported operation '" + definition.op + "'");
+    }
+    if (!Array.isArray(definition.inputs) || definition.inputs.length !== operationArity[definition.op]) {
+      throw new Error(
+        "Computation '" + definition.id + "' operation '" + definition.op + "' expects " +
+        operationArity[definition.op] + " input(s)"
+      );
+    }
+    const inputs = definition.inputs.map(function (inputId) {
+      return resolveId(inputId, definition.id);
+    });
+    return operation.apply(null, inputs);
+  }
+
+  function recompute() {
+    computationIds.forEach(function (id) {
+      delete dataContext[id];
+    });
+    computationDefinitions.forEach(function (definition) {
+      dataContext[definition.id] = executeComputation(definition);
+    });
+    return dataContext;
+  }
+
+  function readNumericInput(input, variableId) {
+    if (input.value.trim() === "") {
+      throw new Error("Control for '" + variableId + "' requires a numeric value");
+    }
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) {
+      throw new Error("Control for '" + variableId + "' requires a finite number");
+    }
+    dataContext[variableId] = value;
+  }
+
+  function readToggle(input, variableId) {
+    dataContext[variableId] = input.checked;
+  }
+
+  function readMatrixCell(input, variableId) {
+    const row = Number(input.dataset.row);
+    const column = Number(input.dataset.column);
+    if (input.value.trim() === "") {
+      throw new Error("Matrix control for '" + variableId + "' requires a numeric value");
+    }
+    const value = Number(input.value);
+    if (!Number.isInteger(row) || !Number.isInteger(column) || !Number.isFinite(value)) {
+      throw new Error("Matrix control for '" + variableId + "' received an invalid numeric value");
+    }
+    dataContext[variableId][row][column] = value;
+  }
+
+  const controlReaders = Object.freeze({
+    slider: readNumericInput,
+    number_input: readNumericInput,
+    toggle: readToggle,
+    matrix_editor: readMatrixCell,
+  });
+
+  function resolveOutputId(id, consumer) {
+    if (!Object.prototype.hasOwnProperty.call(dataContext, id)) {
+      throw new Error(consumer + " references missing ID '" + id + "'");
+    }
+    return dataContext[id];
+  }
+
+  function formatNumber(value) {
+    if (!isFiniteNumber(value)) {
+      throw new Error("Cannot display an invalid numeric value");
+    }
+    if (value === 0 || Number.isInteger(value)) {
+      return String(value);
+    }
+    if (Math.abs(value) >= 10000 || Math.abs(value) < 0.0001) {
+      return value.toExponential(3);
+    }
+    return String(Number(value.toFixed(4)));
+  }
+
+  function asMatrix(value, consumer) {
+    const shape = shapeOf(value, consumer);
+    if (shape.length === 0) {
+      return [[value]];
+    }
+    if (shape.length === 1) {
+      return [value];
+    }
+    if (shape.length === 2) {
+      return value;
+    }
+    throw new Error(consumer + " supports only scalars, vectors, or matrices");
+  }
+
+  function clearElement(element) {
+    while (element.firstChild) {
+      element.removeChild(element.firstChild);
+    }
+  }
+
+  function appendDataTable(element, value, className, heatmap) {
+    const matrix = asMatrix(value, className);
+    const flatValues = matrix.reduce(function (values, row) {
+      return values.concat(row);
+    }, []);
+    const minimum = Math.min.apply(null, flatValues);
+    const maximum = Math.max.apply(null, flatValues);
+    const range = maximum - minimum;
+    const table = document.createElement("table");
+    table.className = className;
+    const body = document.createElement("tbody");
+
+    matrix.forEach(function (row) {
+      const tableRow = document.createElement("tr");
+      row.forEach(function (valueItem) {
+        const cell = document.createElement("td");
+        cell.textContent = formatNumber(valueItem);
+        if (heatmap) {
+          const ratio = range === 0 ? 0.5 : (valueItem - minimum) / range;
+          cell.style.backgroundColor = "rgba(53, 88, 212, " + (0.14 + ratio * 0.76) + ")";
+          cell.style.color = ratio > 0.56 ? "#ffffff" : "#172033";
+        }
+        tableRow.appendChild(cell);
+      });
+      body.appendChild(tableRow);
+    });
+    table.appendChild(body);
+    element.appendChild(table);
+  }
+
+  function numericSeries(value, consumer) {
+    const shape = shapeOf(value, consumer);
+    if (shape.length !== 1) {
+      throw new Error(consumer + " requires a numeric vector");
+    }
+    return value;
+  }
+
+  function createSvgElement(name) {
+    return document.createElementNS("http://www.w3.org/2000/svg", name);
+  }
+
+  function setSvgAttributes(element, attributes) {
+    Object.keys(attributes).forEach(function (name) {
+      element.setAttribute(name, String(attributes[name]));
+    });
+  }
+
+  function chartScale(values, height, padding) {
+    let minimum = Math.min.apply(null, values);
+    let maximum = Math.max.apply(null, values);
+    if (minimum === maximum) {
+      minimum -= 1;
+      maximum += 1;
+    }
+    return {
+      minimum: minimum,
+      maximum: maximum,
+      y: function (value) {
+        return padding + (maximum - value) * (height - padding * 2) / (maximum - minimum);
+      },
+    };
+  }
+
+  function baseChart(values) {
+    const width = 600;
+    const height = 240;
+    const padding = 34;
+    const svg = createSvgElement("svg");
+    setSvgAttributes(svg, {
+      viewBox: "0 0 " + width + " " + height,
+      role: "img",
+      "aria-label": "Data chart",
+      class: "chart-svg",
+    });
+    return { svg: svg, width: width, height: height, padding: padding, scale: chartScale(values, height, padding) };
+  }
+
+  function renderMatrixDisplay(element, values) {
+    appendDataTable(element, values[0], "data-table", false);
+  }
+
+  function renderHeatmap(element, values) {
+    appendDataTable(element, values[0], "heatmap-table", true);
+  }
+
+  function chartLabels(definition, length) {
+    if (!Array.isArray(definition.labels) || definition.labels.length === 0) {
+      return Array.from({ length: length }, function (_, index) {
+        return String(index + 1);
+      });
+    }
+    if (definition.labels.length !== length) {
+      throw new Error(
+        "Visualization '" + definition.element_id + "' has " + definition.labels.length +
+        " labels for " + length + " values"
+      );
+    }
+    return definition.labels;
+  }
+
+  function renderBarChart(element, values, definition) {
+    const series = numericSeries(values[0], "bar_chart");
+    const labels = chartLabels(definition, series.length);
+    const chart = baseChart(series.concat([0]));
+    const baseline = chart.scale.y(0);
+    const slotWidth = (chart.width - chart.padding * 2) / series.length;
+    const axis = createSvgElement("line");
+    setSvgAttributes(axis, {
+      x1: chart.padding,
+      x2: chart.width - chart.padding,
+      y1: baseline,
+      y2: baseline,
+      class: "chart-axis",
+    });
+    chart.svg.appendChild(axis);
+
+    series.forEach(function (value, index) {
+      const valueY = chart.scale.y(value);
+      const bar = createSvgElement("rect");
+      setSvgAttributes(bar, {
+        x: chart.padding + index * slotWidth + slotWidth * 0.16,
+        y: Math.min(valueY, baseline),
+        width: slotWidth * 0.68,
+        height: Math.max(1, Math.abs(baseline - valueY)),
+        rx: 4,
+        class: "chart-bar",
+      });
+      const label = createSvgElement("text");
+      setSvgAttributes(label, {
+        x: chart.padding + index * slotWidth + slotWidth / 2,
+        y: chart.height - 8,
+        "text-anchor": "middle",
+        class: "chart-label",
+      });
+      label.textContent = labels[index];
+      const title = createSvgElement("title");
+      title.textContent = labels[index] + ": " + formatNumber(value);
+      bar.appendChild(title);
+      chart.svg.appendChild(bar);
+      chart.svg.appendChild(label);
+    });
+    element.appendChild(chart.svg);
+  }
+
+  function renderLineChart(element, values, definition) {
+    const series = numericSeries(values[0], "line_chart");
+    const labels = chartLabels(definition, series.length);
+    const chart = baseChart(series);
+    const usableWidth = chart.width - chart.padding * 2;
+    const xAt = function (index) {
+      return series.length === 1
+        ? chart.width / 2
+        : chart.padding + index * usableWidth / (series.length - 1);
+    };
+    const points = series.map(function (value, index) {
+      return xAt(index) + "," + chart.scale.y(value);
+    }).join(" ");
+    const polyline = createSvgElement("polyline");
+    setSvgAttributes(polyline, { points: points, class: "chart-line" });
+    chart.svg.appendChild(polyline);
+    series.forEach(function (value, index) {
+      const point = createSvgElement("circle");
+      setSvgAttributes(point, {
+        cx: xAt(index),
+        cy: chart.scale.y(value),
+        r: 4,
+        class: "chart-point",
+      });
+      const title = createSvgElement("title");
+      title.textContent = labels[index] + ": " + formatNumber(value);
+      point.appendChild(title);
+      chart.svg.appendChild(point);
+    });
+    element.appendChild(chart.svg);
+  }
+
+  function summarizeValue(value) {
+    if (isFiniteNumber(value)) {
+      return formatNumber(value);
+    }
+    const shape = shapeOf(value, "step_pipeline value");
+    if (shape.length === 1 && shape[0] <= 4) {
+      return "[" + value.map(formatNumber).join(", ") + "]";
+    }
+    return shape.join(" × ");
+  }
+
+  function renderStepPipeline(element, values, definition) {
+    if (definition.labels.length !== values.length) {
+      throw new Error(
+        "Visualization '" + definition.element_id + "' must provide one label per pipeline stage"
+      );
+    }
+    const pipeline = document.createElement("div");
+    pipeline.className = "pipeline";
+    values.forEach(function (value, index) {
+      if (index > 0) {
+        const arrow = document.createElement("div");
+        arrow.className = "pipeline-arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "→";
+        pipeline.appendChild(arrow);
+      }
+      const step = document.createElement("div");
+      step.className = "pipeline-step";
+      const label = document.createElement("span");
+      label.textContent = definition.labels[index] || "Step " + (index + 1);
+      const summary = document.createElement("code");
+      summary.textContent = summarizeValue(value);
+      step.appendChild(label);
+      step.appendChild(summary);
+      pipeline.appendChild(step);
+    });
+    element.appendChild(pipeline);
+  }
+
+  const visualizationRegistry = Object.freeze({
+    bar_chart: renderBarChart,
+    line_chart: renderLineChart,
+    heatmap: renderHeatmap,
+    matrix_display: renderMatrixDisplay,
+    step_pipeline: renderStepPipeline,
+  });
+
+  function visualizationValues(definition) {
+    const ids = Array.isArray(definition.data) ? definition.data : [definition.data];
+    const resolvedValues = ids.map(function (id) {
+      return resolveOutputId(id, "Visualization '" + definition.element_id + "'");
+    });
+    if ((definition.type === "bar_chart" || definition.type === "line_chart") && ids.length > 1) {
+      if (!resolvedValues.every(isFiniteNumber)) {
+        throw new Error(
+          "Visualization '" + definition.element_id + "' requires scalar IDs when multiple data IDs are used"
+        );
+      }
+      return [resolvedValues];
+    }
+    if (definition.type !== "step_pipeline" && ids.length !== 1) {
+      throw new Error("Visualization '" + definition.element_id + "' requires one data ID");
+    }
+    return resolvedValues;
+  }
+
+  function renderIntermediateValues() {
+    outputDefinitions.intermediate_values.forEach(function (definition) {
+      const element = document.getElementById(definition.element_id);
+      if (!element) {
+        throw new Error("Missing intermediate value element '" + definition.element_id + "'");
+      }
+      clearElement(element);
+      const value = resolveOutputId(
+        definition.data,
+        "Intermediate value '" + definition.label + "'"
+      );
+      appendDataTable(element, value, "data-table", false);
+    });
+  }
+
+  function renderVisualizations() {
+    outputDefinitions.visualizations.forEach(function (definition) {
+      const renderer = visualizationRegistry[definition.type];
+      if (!renderer) {
+        throw new Error("Unsupported visualization type '" + definition.type + "'");
+      }
+      const element = document.getElementById(definition.element_id);
+      if (!element) {
+        throw new Error("Missing visualization element '" + definition.element_id + "'");
+      }
+      clearElement(element);
+      renderer(element, visualizationValues(definition), definition);
+    });
+  }
+
+  function clearRuntimeError() {
+    const errorElement = document.getElementById("runtime-error");
+    if (errorElement) {
+      errorElement.hidden = true;
+      errorElement.textContent = "";
+    }
+  }
+
+  function showRuntimeError(error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const errorElement = document.getElementById("runtime-error");
+    if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.hidden = false;
+    }
+    console.error(message);
+  }
+
+  function updateStateFromControl(control, input) {
+    const reader = controlReaders[control.dataset.controlType];
+    if (!reader) {
+      throw new Error("Unsupported control type: " + control.dataset.controlType);
+    }
+    reader(input, control.dataset.variable);
+    recompute();
+    clearRuntimeError();
+    render();
+  }
+
+  function render() {
+    document.querySelectorAll(".lesson-control").forEach(function (control) {
+      const variableId = control.dataset.variable;
+      const value = dataContext[variableId];
+      const type = control.dataset.controlType;
+
+      if (type === "slider" || type === "number_input") {
+        const input = control.querySelector("input");
+        if (document.activeElement !== input) {
+          input.value = String(value);
+        }
+        const output = control.querySelector("output");
+        if (output) {
+          output.value = String(value);
+          output.textContent = String(value);
+        }
+      } else if (type === "toggle") {
+        control.querySelector("input").checked = Boolean(value);
+      } else if (type === "matrix_editor") {
+        control.querySelectorAll("input[data-row][data-column]").forEach(function (input) {
+          if (document.activeElement !== input) {
+            const row = Number(input.dataset.row);
+            const column = Number(input.dataset.column);
+            input.value = String(value[row][column]);
+          }
+        });
+      }
+    });
+    renderIntermediateValues();
+    renderVisualizations();
+  }
+
+  function initializeControls() {
+    document.querySelectorAll(".lesson-control").forEach(function (control) {
+      const type = control.dataset.controlType;
+      const eventName = type === "toggle" ? "change" : "input";
+      control.addEventListener(eventName, function (event) {
+        if (event.target instanceof HTMLInputElement) {
+          try {
+            updateStateFromControl(control, event.target);
+          } catch (error) {
+            showRuntimeError(error);
+          }
+        }
+      });
+    });
+
+    try {
+      recompute();
+      render();
+      clearRuntimeError();
+    } catch (error) {
+      showRuntimeError(error);
+    }
+  }
+
+  function initializeMindMap() {
+    const nodes = document.querySelectorAll(".mind-map-node");
+    const detailName = document.getElementById("mind-map-detail-name");
+    const detailSummary = document.getElementById("mind-map-detail-summary");
+    const detailNote = document.getElementById("mind-map-detail-note");
+
+    function selectNode(node) {
+      nodes.forEach(function (candidate) {
+        candidate.classList.remove("is-selected");
+      });
+      node.classList.add("is-selected");
+
+      if (detailName) {
+        detailName.textContent = node.dataset.conceptName;
+      }
+      if (detailSummary) {
+        detailSummary.textContent = node.dataset.conceptSummary;
+      }
+
+      const targetId = node.dataset.sectionTarget;
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) {
+        if (detailNote) {
+          detailNote.hidden = true;
+          detailNote.textContent = "";
+        }
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (detailNote) {
+        detailNote.textContent = targetId
+          ? "The linked section is unavailable in this document."
+          : "This concept has no linked section.";
+        detailNote.hidden = false;
+      }
+    }
+
+    nodes.forEach(function (node) {
+      node.addEventListener("click", function () {
+        selectNode(node);
+      });
+      node.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectNode(node);
+        }
+      });
+    });
+  }
+
+  window.lessonRuntime = Object.freeze({
+    state: dataContext,
+    context: dataContext,
+    operations: operationRegistry,
+    visualizations: visualizationRegistry,
+    recompute: recompute,
+    render: render,
+  });
+
+  initializeControls();
+  initializeMindMap();
+}());
+
+  </script>
+</body>
+</html>

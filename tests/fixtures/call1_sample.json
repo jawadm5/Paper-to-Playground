@@ -1,0 +1,751 @@
+{
+  "title": "A teaching edition of Query-Dependent Weighted Memory: A Minimal Algebraic Model (fictional source)",
+  "learning_outcomes": [
+    {
+      "id": "understand_problem",
+      "level": "understand",
+      "description": "Explain why uniform averaging cannot respond to a changed query when the stored values stay fixed."
+    },
+    {
+      "id": "understand_mechanism",
+      "level": "understand",
+      "description": "Distinguish the roles of query, keys, scores, weights, and values in the proposed reader."
+    },
+    {
+      "id": "apply_weighted_sum",
+      "level": "apply",
+      "description": "Calculate a small weighted sum and identify the equal-score case as the ordinary mean."
+    },
+    {
+      "id": "analyze_dependencies",
+      "level": "analyze",
+      "description": "Trace which quantities can change when the query, keys, or values change."
+    },
+    {
+      "id": "analyze_evidence",
+      "level": "analyze",
+      "description": "Separate the paper's algebraic consequences from empirical claims that its evidence does not support."
+    }
+  ],
+  "sections": [
+    {
+      "id": "prerequisite_tools",
+      "title": "Before the paper: vectors and weighted sums",
+      "kind": "prerequisites",
+      "parent_id": null,
+      "paper_explanation": "This teaching section supplies background rather than reporting a section of the fictional paper. A vector is an ordered list of numbers; its width is its number of entries. A dot product multiplies corresponding entries of two equally wide vectors and adds those products, producing one scalar. A weighted sum multiplies each value vector by one coefficient and adds corresponding coordinates. If the coefficients sum to one and are nonnegative, the result is an average that may favor some values more than others.",
+      "simple_explanation": "Separate two tasks: deciding how much each record contributes, then combining its contents. For scalar contents 2 and 8, equal coefficients 0.5 and 0.5 give 5. Coefficients 0.25 and 0.75 give 6.5. These numbers are a supplied teaching example, not a result reported by the paper.",
+      "intuition": {
+        "explanation": "A weighted average keeps the idea of averaging while allowing unequal shares. The shares explain the arithmetic contribution of each supplied value.",
+        "basis": "background",
+        "source_refs": []
+      },
+      "connections": [
+        {
+          "topic": "Weighted averages",
+          "section_id": "proposed_reader",
+          "explanation": "This general mathematical operation is the final stage of the paper's reader.",
+          "basis": "background",
+          "source_refs": []
+        }
+      ],
+      "learning_outcome_ids": [
+        "understand_mechanism",
+        "apply_weighted_sum"
+      ],
+      "visual_ids": [],
+      "source_refs": [],
+      "boundaries": [
+        {
+          "kind": "simplification",
+          "description": "The two-number example introduces the arithmetic only; the paper's value rows may contain several coordinates.",
+          "basis": "background",
+          "source_refs": []
+        }
+      ]
+    },
+    {
+      "id": "paper_introduction",
+      "title": "The paper's question: can a memory read depend on the request?",
+      "kind": "introduction",
+      "parent_id": null,
+      "paper_explanation": "The fictional paper considers a memory made of paired keys and values. A query represents a current request, a key provides a record's matching representation, and a value holds the information that will be combined. The paper asks for a transparent rule whose output can depend on the query. It does not describe how these representations are learned. Its stated contribution is a small mathematical definition together with consequences that can be inspected directly.",
+      "simple_explanation": "The same collection can be read differently for different requests. The paper separates the information used to match a record from the information returned by that record. This separation is central to the later explanation of why changing values does not change the weights.",
+      "intuition": {
+        "explanation": "As a teaching analogy, imagine notes with labels and contents. A request is compared with the labels to allocate attention, after which the contents are combined. Real labels and human relevance judgments are not part of the mathematical model.",
+        "basis": "analogy",
+        "source_refs": []
+      },
+      "connections": [
+        {
+          "topic": "Query-independent reading",
+          "section_id": "averaging_problem",
+          "explanation": "The problem section makes the motivation concrete by considering a reader that ignores the query.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_problem"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "understand_problem",
+        "understand_mechanism"
+      ],
+      "visual_ids": [],
+      "source_refs": [
+        "s_intro"
+      ],
+      "boundaries": [
+        {
+          "kind": "assumption",
+          "description": "The query, keys, and values are given inputs. Their construction or learning is outside this paper.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_intro",
+            "s_limits"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "averaging_problem",
+      "title": "The problem with always taking the same mean",
+      "kind": "problem",
+      "parent_id": null,
+      "paper_explanation": "The baseline reader adds the stored value rows and divides by their number. Its coefficients are always equal, so the query has no place in the calculation. With scalar values 2 and 8 it always returns 5. Changing only the query cannot change this baseline output. The paper identifies that invariance as a limitation when the intended readout should depend on the request; it does not claim that equal averaging is universally inappropriate.",
+      "simple_explanation": "The issue is not that the mean is mathematically wrong. It answers a fixed question: what is the average of all stored values? The proposed method is intended to answer a different kind of question, where the coefficients depend on the current query.",
+      "intuition": null,
+      "connections": [
+        {
+          "topic": "A query-dependent alternative",
+          "section_id": "proposed_reader",
+          "explanation": "The proposed reader changes how coefficients are determined while retaining a weighted-sum readout.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_method"
+          ]
+        },
+        {
+          "topic": "Equal-score behavior",
+          "section_id": "algebraic_observations",
+          "explanation": "The original mean reappears as a special case when every record receives the same score.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_observations"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "understand_problem",
+        "analyze_dependencies"
+      ],
+      "visual_ids": [],
+      "source_refs": [
+        "s_problem"
+      ],
+      "boundaries": [
+        {
+          "kind": "limitation",
+          "description": "Uniform averaging can be suitable when equal contributions are intended; the paper supplies no empirical evidence that replacing it improves a task.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_problem",
+            "s_limits"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "proposed_reader",
+      "title": "The proposed solution: compare, normalize, combine",
+      "kind": "method",
+      "parent_id": null,
+      "paper_explanation": "The reader has three ordered stages. First, the dot product between the query and each key gives a compatibility score, divided by the square root of their shared width. Second, softmax exponentiates these scores and divides each result by their total. Third, the resulting coefficient for each record multiplies that record's value row; the weighted rows are added. The query and keys determine the coefficients, while the values determine what those coefficients combine. Key width and value width have separate roles and need not be equal.",
+      "simple_explanation": "A key is used for comparison; its corresponding value supplies content. A high score produces a larger share than a lower score, but it does not automatically select one record exclusively. All supplied records participate in this unmasked definition. The source's scaling factor is part of the definition; this small paper provides no experiment that evaluates its usefulness.",
+      "intuition": null,
+      "connections": [
+        {
+          "topic": "Vector and weighted-sum background",
+          "section_id": "prerequisite_tools",
+          "explanation": "The method composes dot products, scalar normalization, and a weighted sum.",
+          "basis": "background",
+          "source_refs": []
+        },
+        {
+          "topic": "Consequences of the formula",
+          "section_id": "algebraic_observations",
+          "explanation": "Once the equations are explicit, equal-score and value-change behavior follow without a benchmark experiment.",
+          "basis": "derived",
+          "source_refs": [
+            "s_formula",
+            "s_observations"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "understand_mechanism",
+        "apply_weighted_sum",
+        "analyze_dependencies"
+      ],
+      "visual_ids": [
+        "v1"
+      ],
+      "source_refs": [
+        "s_method",
+        "s_formula"
+      ],
+      "boundaries": [
+        {
+          "kind": "assumption",
+          "description": "Every query and key has the same positive width, and keys and values have matching row counts.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_method",
+            "s_formula"
+          ]
+        },
+        {
+          "kind": "simplification",
+          "description": "This definition has one query and no masking, learned projection, training procedure, or multiple heads.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_method"
+          ]
+        },
+        {
+          "kind": "limitation",
+          "description": "The supplied visual record is caption-only; no image asset is available to inspect.",
+          "basis": "derived",
+          "source_refs": [
+            "v1"
+          ]
+        }
+      ],
+      "mathematical_model": {
+        "variables": [
+          {
+            "id": "q",
+            "notation": "q",
+            "meaning": "One query row vector",
+            "role": "input",
+            "domain": "Finite real vector of positive width d_k"
+          },
+          {
+            "id": "keys",
+            "notation": "K",
+            "meaning": "One key vector per memory record",
+            "role": "input",
+            "domain": "Finite real matrix with n >= 1 rows and d_k columns"
+          },
+          {
+            "id": "values",
+            "notation": "V",
+            "meaning": "One value vector for each corresponding key",
+            "role": "input",
+            "domain": "Finite real matrix with n rows and d_v >= 1 columns"
+          },
+          {
+            "id": "key_dimension",
+            "notation": "d_k",
+            "meaning": "The shared query/key width, determined by their shapes",
+            "role": "parameter",
+            "domain": "Positive integer"
+          },
+          {
+            "id": "record_count",
+            "notation": "n",
+            "meaning": "Number of corresponding key and value rows",
+            "role": "parameter",
+            "domain": "Positive integer determined by the memory shape"
+          },
+          {
+            "id": "value_dimension",
+            "notation": "d_v",
+            "meaning": "Width of each value row and of the readout",
+            "role": "parameter",
+            "domain": "Positive integer, independent of d_k"
+          },
+          {
+            "id": "scores",
+            "notation": "s",
+            "meaning": "Scaled query-key compatibility scores",
+            "role": "intermediate",
+            "domain": "Real vector of length n"
+          },
+          {
+            "id": "weights",
+            "notation": "a",
+            "meaning": "Softmax coefficients across the records",
+            "role": "intermediate",
+            "domain": "Positive real vector of length n summing to one in exact mathematics"
+          },
+          {
+            "id": "readout",
+            "notation": "y",
+            "meaning": "The weighted combination of the value rows",
+            "role": "output",
+            "domain": "Real vector of width d_v"
+          }
+        ],
+        "equations": [
+          {
+            "id": "score_equation",
+            "latex": "s_i = \\frac{q \\cdot k_i}{\\sqrt{d_k}}",
+            "explanation": "Compare the query with each key, using the scale specified by the source.",
+            "variable_ids": [
+              "q",
+              "keys",
+              "key_dimension",
+              "scores"
+            ],
+            "basis": "source_supported",
+            "source_refs": [
+              "s_formula"
+            ]
+          },
+          {
+            "id": "weight_equation",
+            "latex": "a_i = \\frac{\\exp(s_i)}{\\sum_{j=1}^{n}\\exp(s_j)}",
+            "explanation": "Convert scores into positive coefficients that sum to one across records.",
+            "variable_ids": [
+              "scores",
+              "weights",
+              "record_count"
+            ],
+            "basis": "source_supported",
+            "source_refs": [
+              "s_formula"
+            ]
+          },
+          {
+            "id": "readout_equation",
+            "latex": "y = \\sum_{i=1}^{n} a_i v_i = aV",
+            "explanation": "Multiply every value row by its coefficient and add the resulting vectors.",
+            "variable_ids": [
+              "weights",
+              "values",
+              "readout",
+              "record_count"
+            ],
+            "basis": "source_supported",
+            "source_refs": [
+              "s_formula"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "description": "Compute one scaled query-key score for each record.",
+            "equation_ids": [
+              "score_equation"
+            ],
+            "input_ids": [
+              "q",
+              "keys",
+              "key_dimension"
+            ],
+            "output_ids": [
+              "scores"
+            ]
+          },
+          {
+            "description": "Apply softmax across the complete score vector.",
+            "equation_ids": [
+              "weight_equation"
+            ],
+            "input_ids": [
+              "scores",
+              "record_count"
+            ],
+            "output_ids": [
+              "weights"
+            ]
+          },
+          {
+            "description": "Form the weighted sum of the corresponding value rows.",
+            "equation_ids": [
+              "readout_equation"
+            ],
+            "input_ids": [
+              "weights",
+              "values",
+              "record_count"
+            ],
+            "output_ids": [
+              "readout"
+            ]
+          }
+        ],
+        "constraints": [
+          {
+            "description": "The query width must equal the key-row width; the number of key rows must equal the number of value rows.",
+            "basis": "source_supported",
+            "source_refs": [
+              "s_method",
+              "s_formula"
+            ]
+          },
+          {
+            "description": "Use at least one record, positive widths, finite input entries, and the shared query/key width as d_k.",
+            "basis": "source_supported",
+            "source_refs": [
+              "s_formula"
+            ]
+          },
+          {
+            "description": "For numerical softmax, subtract the maximum score before exponentiating. This preserves the mathematical coefficients while avoiding a large positive exponent.",
+            "basis": "source_supported",
+            "source_refs": [
+              "s_formula"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "algebraic_observations",
+      "title": "What the equations establish",
+      "kind": "results",
+      "parent_id": null,
+      "paper_explanation": "The paper's results are logical observations. If all scores equal c, every softmax numerator is exp(c), and the denominator is n times that value. Each coefficient is therefore 1/n, so the reader returns the ordinary mean. The second observation concerns dependency: q, K, and their shared width determine scores and weights, while V appears only in the final weighted sum. Holding the matching inputs fixed while changing V leaves the weight vector unchanged. The output follows the same coefficients applied to the new values; some changes to different value rows can cancel.",
+      "simple_explanation": "Equal scores mean equal shares, even when the stored values differ. Changing a record's contents does not change how the query matches its key in this model. By contrast, changing a query or a key can change scores and therefore the weights. 'Can change' matters: a particular change may leave dot products unchanged, and a change in weights need not change the output when the value rows are identical.",
+      "intuition": {
+        "explanation": "Read the formula as a dependency chain. Scores determine coefficients; coefficients and values jointly determine the readout. A variable absent from an earlier stage cannot directly alter that stage in this definition.",
+        "basis": "derived",
+        "source_refs": [
+          "s_formula"
+        ]
+      },
+      "connections": [
+        {
+          "topic": "The original baseline",
+          "section_id": "averaging_problem",
+          "explanation": "The equal-score observation recovers uniform averaging exactly.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_problem",
+            "s_observations"
+          ]
+        },
+        {
+          "topic": "Evidence boundaries",
+          "section_id": "evidence_limits",
+          "explanation": "An algebraic property is not a measurement of predictive accuracy or usefulness.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_limits"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "apply_weighted_sum",
+        "analyze_dependencies",
+        "analyze_evidence"
+      ],
+      "visual_ids": [],
+      "source_refs": [
+        "s_observations",
+        "s_formula"
+      ],
+      "boundaries": [
+        {
+          "kind": "limitation",
+          "description": "These observations are consequences of the equations, not empirical results.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_observations"
+          ]
+        },
+        {
+          "kind": "misconception",
+          "description": "A changed input does not guarantee a changed output. Dot products or weighted contributions can remain equal or cancel.",
+          "basis": "derived",
+          "source_refs": [
+            "s_formula",
+            "s_observations"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evidence_limits",
+      "title": "What the paper does not establish",
+      "kind": "discussion",
+      "parent_id": null,
+      "paper_explanation": "The paper provides no dataset, benchmark result, learned parameters, or empirical comparison. It therefore cannot support a claim that its reader is more accurate than uniform averaging, that its matches correspond to useful real-world relevance, or that a larger system using it understands its inputs. The normalized, nonnegative coefficients make the readout a convex combination of the supplied values. That mathematical description is narrower than an explanation of a larger model's behavior. A numerical implementation must also account for finite precision; the source notes the equivalent maximum-subtraction form of softmax.",
+      "simple_explanation": "The method is inspectable, but usefulness still needs evidence. We can verify a small calculation and its mathematical consequences without pretending to have validated a real application. The distinction keeps the paper's actual claims separate from conclusions a reader might be tempted to add.",
+      "intuition": null,
+      "connections": [
+        {
+          "topic": "Observed dependency properties",
+          "section_id": "algebraic_observations",
+          "explanation": "The results section supports statements about the defined computation, whereas this discussion limits broader interpretations.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_observations",
+            "s_limits"
+          ]
+        },
+        {
+          "topic": "Application performance",
+          "section_id": null,
+          "explanation": "Evaluating usefulness would require task-specific data and a comparison that this source does not provide.",
+          "basis": "derived",
+          "source_refs": [
+            "s_limits"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "analyze_evidence",
+        "understand_mechanism"
+      ],
+      "visual_ids": [],
+      "source_refs": [
+        "s_limits",
+        "s_formula"
+      ],
+      "boundaries": [
+        {
+          "kind": "limitation",
+          "description": "No empirical evaluation is available in this source.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_limits"
+          ]
+        },
+        {
+          "kind": "misconception",
+          "description": "The weights are coefficients in this calculation, not a complete explanation of a larger system's decisions.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_limits"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "paper_conclusion",
+      "title": "The conclusion: change the coefficients, preserve the chain of reasoning",
+      "kind": "conclusion",
+      "parent_id": null,
+      "paper_explanation": "The fictional paper replaces fixed equal coefficients with coefficients computed from query-key scores. It closes with an inspectable definition and two central consequences: equal scores recover averaging, and matching determines the coefficients independently of the values being combined. The source leaves application-level usefulness unresolved. A faithful reading therefore holds both conclusions at once: the calculation has clear mathematical properties, and its empirical value has not been demonstrated here.",
+      "simple_explanation": "The complete story is a progression: an unchanged average motivates query-dependent shares; the formula specifies those shares and the readout; the observations explain their behavior; the limitations prevent those observations from being mistaken for performance evidence.",
+      "intuition": null,
+      "connections": [
+        {
+          "topic": "The motivating problem",
+          "section_id": "averaging_problem",
+          "explanation": "The conclusion returns to the distinction between fixed equal coefficients and query-dependent coefficients.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_problem",
+            "s_conclusion"
+          ]
+        },
+        {
+          "topic": "The proposed mechanism",
+          "section_id": "proposed_reader",
+          "explanation": "The mathematical chain is the stated contribution of this fictional paper.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_conclusion"
+          ]
+        }
+      ],
+      "learning_outcome_ids": [
+        "understand_problem",
+        "understand_mechanism",
+        "analyze_evidence"
+      ],
+      "visual_ids": [],
+      "source_refs": [
+        "s_conclusion",
+        "s_limits"
+      ],
+      "boundaries": [
+        {
+          "kind": "limitation",
+          "description": "Whether the reader is useful for an application remains open within the supplied source.",
+          "basis": "source_supported",
+          "source_refs": [
+            "s_conclusion"
+          ]
+        }
+      ]
+    }
+  ],
+  "concepts": [
+    {
+      "id": "weighted_sum_background",
+      "name": "Weighted-sum background",
+      "summary": "Coefficients set the arithmetic contribution of each value.",
+      "section_id": "prerequisite_tools"
+    },
+    {
+      "id": "query_dependent_reading",
+      "name": "Query-dependent memory reading",
+      "summary": "The paper asks for a readout that can change with the current request.",
+      "section_id": "paper_introduction"
+    },
+    {
+      "id": "uniform_averaging",
+      "name": "Uniform averaging baseline",
+      "summary": "Equal fixed coefficients ignore the query when the stored values stay fixed.",
+      "section_id": "averaging_problem"
+    },
+    {
+      "id": "query_key_matching",
+      "name": "Query-key matching",
+      "summary": "Scaled dot products produce one compatibility score per record.",
+      "section_id": "proposed_reader"
+    },
+    {
+      "id": "normalized_coefficients",
+      "name": "Normalized coefficients",
+      "summary": "Softmax turns the scores into positive shares summing to one.",
+      "section_id": "proposed_reader"
+    },
+    {
+      "id": "value_readout",
+      "name": "Weighted value readout",
+      "summary": "The coefficients combine the corresponding value rows into an output.",
+      "section_id": "proposed_reader"
+    },
+    {
+      "id": "equal_score_mean",
+      "name": "Equal scores recover the mean",
+      "summary": "When all scores agree, every coefficient equals 1/n.",
+      "section_id": "algebraic_observations"
+    },
+    {
+      "id": "matching_content_separation",
+      "name": "Matching and content have separate roles",
+      "summary": "Changing values alone leaves the coefficients unchanged.",
+      "section_id": "algebraic_observations"
+    },
+    {
+      "id": "evidence_boundary",
+      "name": "Algebraic evidence boundary",
+      "summary": "The source establishes mathematical properties, not empirical usefulness.",
+      "section_id": "evidence_limits"
+    },
+    {
+      "id": "bounded_conclusion",
+      "name": "A defined mechanism, an open application question",
+      "summary": "Query-dependent coefficients are specified; their usefulness remains unevaluated.",
+      "section_id": "paper_conclusion"
+    }
+  ],
+  "relationships": [
+    {
+      "from": "weighted_sum_background",
+      "to": "value_readout",
+      "label": "provides mathematical background for",
+      "basis": "background",
+      "source_refs": []
+    },
+    {
+      "from": "uniform_averaging",
+      "to": "query_dependent_reading",
+      "label": "motivates",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_problem",
+        "s_intro"
+      ]
+    },
+    {
+      "from": "query_dependent_reading",
+      "to": "query_key_matching",
+      "label": "is implemented through",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_method"
+      ]
+    },
+    {
+      "from": "query_key_matching",
+      "to": "normalized_coefficients",
+      "label": "supplies scores to",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_formula"
+      ]
+    },
+    {
+      "from": "normalized_coefficients",
+      "to": "value_readout",
+      "label": "provides coefficients for",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_formula"
+      ]
+    },
+    {
+      "from": "normalized_coefficients",
+      "to": "equal_score_mean",
+      "label": "becomes uniform when scores agree",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_observations"
+      ]
+    },
+    {
+      "from": "equal_score_mean",
+      "to": "uniform_averaging",
+      "label": "recovers exactly",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_observations"
+      ]
+    },
+    {
+      "from": "query_key_matching",
+      "to": "matching_content_separation",
+      "label": "determines coefficients without using values",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_observations"
+      ]
+    },
+    {
+      "from": "matching_content_separation",
+      "to": "value_readout",
+      "label": "separates coefficient formation from",
+      "basis": "derived",
+      "source_refs": [
+        "s_formula",
+        "s_observations"
+      ]
+    },
+    {
+      "from": "value_readout",
+      "to": "evidence_boundary",
+      "label": "has properties that do not establish usefulness",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_limits"
+      ]
+    },
+    {
+      "from": "evidence_boundary",
+      "to": "bounded_conclusion",
+      "label": "limits the scope of",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_limits",
+        "s_conclusion"
+      ]
+    },
+    {
+      "from": "query_dependent_reading",
+      "to": "bounded_conclusion",
+      "label": "is specified but not empirically evaluated in",
+      "basis": "source_supported",
+      "source_refs": [
+        "s_conclusion"
+      ]
+    }
+  ]
+}

@@ -106,7 +106,9 @@
     {
       "id": "scaled_scores",
       "op": "divide",
-      "inputs": ["raw_scores", "scale"]
+      "inputs": ["raw_scores", "scale"],
+      "condition": "apply_scaling",
+      "otherwise": "raw_scores"
     },
     {
       "id": "attention_weights",

@@ -1,1 +1,434 @@
-<!-- The renderer template is implemented in Stage 2. -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>$document_title</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #61708a;
+      --surface: #ffffff;
+      --surface-soft: #f5f7fb;
+      --line: #dfe5ef;
+      --accent: #3558d4;
+      --accent-soft: #eef1ff;
+      --warm: #8a4b08;
+      --warm-soft: #fff7e8;
+      --radius: 18px;
+      --shadow: 0 18px 50px rgba(23, 32, 51, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+    body { margin: 0; min-width: 320px; }
+    h1, h2, h3, h4, p { margin-top: 0; }
+    a { color: var(--accent); text-underline-offset: 0.18em; }
+    a:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(53, 88, 212, 0.26);
+      outline-offset: 3px;
+    }
+    .page-shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 82px 0 68px;
+      color: #fff;
+      background: #172033;
+    }
+    .hero::after {
+      position: absolute;
+      top: -160px;
+      right: -90px;
+      width: 420px;
+      height: 420px;
+      border: 78px solid rgba(255,255,255,.055);
+      border-radius: 50%;
+      content: "";
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 900px; }
+    .eyebrow, .section-kicker, .content-label, .section-kind,
+    .outcome-level, .boundary-kind, .basis-label {
+      display: block;
+      color: var(--accent);
+      font-size: .74rem;
+      font-weight: 780;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .hero .eyebrow { margin-bottom: 13px; color: #aebcff; }
+    h1 {
+      max-width: 18ch;
+      margin-bottom: 20px;
+      font-size: clamp(2.5rem, 6.5vw, 5rem);
+      line-height: 1.02;
+      letter-spacing: -.052em;
+    }
+    .subtitle {
+      max-width: 720px;
+      margin-bottom: 28px;
+      color: #cbd3e5;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+    }
+    .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-stat {
+      padding: 7px 12px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 999px;
+      color: #e9edfa;
+      background: rgba(255,255,255,.06);
+      font-size: .85rem;
+    }
+
+    .document { padding: 56px 0 80px; }
+    .learning-outcomes { margin-bottom: 56px; }
+    .section-heading {
+      display: grid;
+      grid-template-columns: minmax(220px, .5fr) 1fr;
+      gap: 30px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .section-kicker { margin-bottom: 8px; }
+    .section-heading h2 {
+      margin-bottom: 0;
+      font-size: clamp(1.7rem, 3vw, 2.35rem);
+      line-height: 1.12;
+      letter-spacing: -.035em;
+    }
+    .section-heading > p { max-width: 640px; margin-bottom: 2px; color: var(--muted); }
+    .outcome-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: outcomes;
+    }
+    .outcome-card {
+      position: relative;
+      min-height: 150px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      counter-increment: outcomes;
+    }
+    .outcome-card::after {
+      position: absolute;
+      top: 13px;
+      right: 18px;
+      color: #d7ddeb;
+      content: counter(outcomes, decimal-leading-zero);
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+    .outcome-level { margin-bottom: 16px; }
+    .outcome-card p { margin-bottom: 0; color: var(--muted); }
+
+    .mind-map-section { margin-bottom: 56px; }
+    .mind-map-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 270px;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .mind-map-canvas {
+      min-width: 0;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background-color: var(--surface);
+      background-image: radial-gradient(#dfe5ef 1px, transparent 1px);
+      background-size: 18px 18px;
+      box-shadow: var(--shadow);
+    }
+    .mind-map-svg { display: block; width: 100%; min-width: 760px; height: auto; }
+    .mind-map-edge-path {
+      fill: none;
+      stroke: #a9b4c8;
+      stroke-width: 2;
+    }
+    #mind-map-arrow path { fill: #7d8ba5; }
+    .mind-map-edge-label {
+      fill: var(--muted);
+      stroke: var(--surface);
+      stroke-width: 7px;
+      paint-order: stroke;
+      font-size: 11px;
+      font-weight: 650;
+      pointer-events: none;
+    }
+    .mind-map-node { cursor: pointer; outline: none; }
+    .mind-map-node rect {
+      fill: var(--surface);
+      stroke: #cbd4e4;
+      stroke-width: 2;
+      filter: drop-shadow(0 6px 12px rgba(23,32,51,.08));
+      transition: fill 150ms ease, stroke 150ms ease, stroke-width 150ms ease;
+    }
+    .mind-map-node:hover rect,
+    .mind-map-node:focus-visible rect {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+    }
+    .mind-map-node.is-selected rect {
+      fill: var(--accent);
+      stroke: var(--accent);
+      stroke-width: 3;
+    }
+    .mind-map-node-label {
+      fill: var(--ink);
+      font-size: 14px;
+      font-weight: 760;
+      pointer-events: none;
+    }
+    .mind-map-node.is-selected .mind-map-node-label { fill: #fff; }
+    .mind-map-details {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .mind-map-details h3 { margin: 8px 0 10px; font-size: 1.15rem; }
+    .mind-map-details p { margin-bottom: 0; color: var(--muted); }
+    .mind-map-detail-note { margin-top: 14px; color: var(--warm) !important; font-size: .82rem; font-weight: 650; }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+    }
+    .section-nav {
+      position: sticky;
+      top: 22px;
+      max-height: calc(100vh - 44px);
+      padding: 22px;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .section-nav h2 { margin-bottom: 16px; font-size: 1rem; }
+    .nav-list, .nav-children { margin: 0; padding: 0; list-style: none; }
+    .nav-children { margin: 7px 0 7px 12px; padding-left: 12px; border-left: 1px solid var(--line); }
+    .section-nav li + li { margin-top: 6px; }
+    .section-nav a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 8px;
+      color: var(--ink);
+      font-size: .86rem;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .section-nav a:hover { color: var(--accent); background: var(--accent-soft); }
+    .section-nav a span { display: block; margin-bottom: 2px; color: var(--muted); font-size: .65rem; text-transform: uppercase; }
+    .paper-sections { min-width: 0; }
+
+    .paper-section {
+      position: relative;
+      margin-bottom: 30px;
+      padding: 34px;
+      scroll-margin-top: 22px;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .paper-section.depth-1 { margin-left: 28px; border-left: 4px solid #b9c5f4; }
+    .paper-section.depth-2 { margin-left: 56px; border-left: 4px solid #d0d8fa; }
+    .paper-section.depth-3 { margin-left: 72px; }
+    .paper-section-header {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 26px;
+    }
+    .section-number {
+      color: var(--accent);
+      font-size: 1.6rem;
+      font-weight: 820;
+      letter-spacing: -.04em;
+    }
+    .section-kind { margin-bottom: 5px; }
+    .paper-section h2 { margin-bottom: 0; font-size: clamp(1.55rem, 3vw, 2.2rem); line-height: 1.14; letter-spacing: -.035em; }
+    .explanation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .explanation-card { padding: 22px; border-radius: 15px; }
+    .paper-voice { border: 1px solid var(--line); background: var(--surface-soft); }
+    .simple-voice { border: 1px solid #d9dfff; background: var(--accent-soft); }
+    .content-label { margin-bottom: 10px; }
+    .explanation-card p, .intuition-card p, .boundary-card p, .equation-card p { margin-bottom: 0; color: var(--muted); }
+    .intuition-card {
+      margin-top: 14px;
+      padding: 20px 22px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px 15px 15px 8px;
+      background: #f8f9ff;
+    }
+    .section-subgroup { margin-top: 28px; }
+    .section-subgroup > h3 { margin-bottom: 14px; font-size: 1.05rem; }
+    .equation-grid, .boundary-grid { display: grid; gap: 12px; }
+    .equation-card, .boundary-card { padding: 18px 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .equation-text {
+      display: block;
+      margin-bottom: 9px;
+      overflow-wrap: anywhere;
+      color: var(--ink);
+      font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+      font-size: .94rem;
+    }
+    .boundary-heading { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .boundary-kind { color: var(--warm); }
+    .basis-label { color: var(--muted); font-size: .65rem; }
+    .inline-sources { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .source-ref {
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-soft);
+      font-size: .72rem;
+    }
+    .source-empty { color: var(--muted); font-size: .75rem; font-style: italic; }
+    .section-sources { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .section-sources > span { color: var(--muted); font-size: .75rem; font-weight: 750; text-transform: uppercase; }
+    .section-sources > div { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .interactive-block { margin-top: 28px; padding: 24px; border: 1px solid #ced7ff; border-radius: var(--radius); background: #fafbff; }
+    .interactive-heading { margin-bottom: 18px; }
+    .interactive-heading h3 { margin: 5px 0 4px; font-size: 1.2rem; }
+    .interactive-heading p { margin-bottom: 0; color: var(--muted); }
+    .control-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .guided-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .guided-card { padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .guided-card h4 { margin-bottom: 10px; }
+    .guided-card p { margin-bottom: 6px; color: var(--muted); font-size: .9rem; }
+    .guided-card p:last-child { margin-bottom: 0; }
+    .block-output-section { margin-top: 20px; }
+    .block-output-section > h4 { margin-bottom: 10px; font-size: .9rem; }
+    .intermediate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .intermediate-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .intermediate-card > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+    .live-data { overflow-x: auto; color: var(--ink); font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace; font-size: .82rem; }
+    .visualization-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .visualization-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .visualization-card h4 { margin-bottom: 12px; font-size: .9rem; }
+    .visualization-body { min-height: 120px; overflow-x: auto; }
+    .data-table, .heatmap-table { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+    .data-table td, .heatmap-table td { padding: 7px; border-radius: 6px; font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace; font-size: .76rem; text-align: center; }
+    .data-table td { border: 1px solid var(--line); background: var(--surface-soft); }
+    .heatmap-table td { min-width: 46px; font-weight: 720; }
+    .chart-svg { display: block; width: 100%; min-width: 280px; height: auto; }
+    .chart-axis { stroke: #c7cfdd; stroke-width: 1; }
+    .chart-bar { fill: var(--accent); }
+    .chart-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-point { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+    .chart-label { fill: var(--muted); font-family: system-ui, sans-serif; font-size: 11px; }
+    .pipeline { display: flex; gap: 8px; align-items: stretch; min-width: max-content; }
+    .pipeline-step { display: grid; min-width: 120px; place-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); text-align: center; }
+    .pipeline-step span { display: block; margin-bottom: 5px; color: var(--muted); font-size: .68rem; font-weight: 750; text-transform: uppercase; }
+    .pipeline-step code { font-size: .78rem; }
+    .pipeline-arrow { display: grid; place-items: center; color: var(--accent); font-weight: 800; }
+    .control-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .control-card label, .control-card h4 { color: var(--ink); font-size: .9rem; font-weight: 720; }
+    .control-card h4 { margin-bottom: 12px; }
+    .control-heading, .toggle-label { display: flex; gap: 14px; align-items: center; justify-content: space-between; }
+    .control-heading { margin-bottom: 12px; }
+    .control-card output { min-width: 42px; padding: 3px 8px; border-radius: 7px; color: var(--accent); background: var(--accent-soft); font-weight: 750; text-align: center; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); }
+    input[type="number"] { width: 100%; padding: 8px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font: inherit; }
+    .toggle-control { display: flex; align-items: center; }
+    .toggle-label { width: 100%; cursor: pointer; }
+    .toggle-switch { position: relative; flex: 0 0 auto; width: 48px; height: 28px; }
+    .toggle-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .toggle-track { display: block; width: 100%; height: 100%; border-radius: 999px; background: #aeb7c7; transition: background 160ms ease; }
+    .toggle-track::after { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px rgba(23,32,51,.25); content: ""; transition: transform 160ms ease; }
+    .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(20px); }
+    .matrix-scroll { overflow-x: auto; }
+    .matrix-control table { width: 100%; border-spacing: 7px; table-layout: fixed; }
+    .matrix-control td { padding: 0; }
+    .runtime-error { margin: 0 0 20px 294px; padding: 14px 16px; border: 1px solid #e4a6a6; border-radius: 10px; color: #8d2020; background: #fff0f0; font-weight: 650; }
+    .empty-state { color: var(--muted); }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .footer-note { margin: 34px 0 0; color: var(--muted); font-size: .82rem; text-align: center; }
+
+    @media (max-width: 960px) {
+      .outcome-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .mind-map-shell { grid-template-columns: 1fr; }
+      .content-layout { grid-template-columns: 1fr; }
+      .section-nav { position: static; max-height: none; }
+      .runtime-error { margin-left: 0; }
+    }
+    @media (max-width: 720px) {
+      .page-shell { width: min(100% - 28px, 1180px); }
+      .hero { padding: 62px 0 52px; }
+      .document { padding-top: 42px; }
+      .section-heading, .outcome-grid, .explanation-grid, .control-grid, .guided-grid, .intermediate-grid, .visualization-grid { grid-template-columns: 1fr; }
+      .section-heading { gap: 10px; }
+      .paper-section { padding: 24px; }
+      .paper-section.depth-1, .paper-section.depth-2, .paper-section.depth-3 { margin-left: 0; }
+      .paper-section-header { grid-template-columns: 1fr; gap: 5px; }
+      .section-sources { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" data-section="header">
+    <div class="page-shell hero-content">
+      <p class="eyebrow">Paper learning document</p>
+      <h1>$title</h1>
+      <p class="subtitle">$subtitle</p>
+      <div class="hero-stats" aria-label="Document summary">
+        <span class="hero-stat">$section_count sections</span>
+        <span class="hero-stat">$outcome_count learning outcomes</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell document">
+    <section class="learning-outcomes" data-section="learning-outcomes">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Learning goals</p>
+          <h2>What you will be able to do</h2>
+        </div>
+        <p>Use these outcomes to orient your reading and check what each part of the paper contributes.</p>
+      </div>
+      <ol class="outcome-grid">$learning_outcomes</ol>
+    </section>
+
+    $mind_map
+
+    <p id="runtime-error" class="runtime-error" role="alert" hidden></p>
+
+    <div class="content-layout">
+      <nav class="section-nav" aria-label="Paper sections">
+        <h2>On this page</h2>
+        $navigation
+      </nav>
+      <div class="paper-sections">$sections</div>
+    </div>
+    <p class="footer-note">Generated as a self-contained paper learning document.</p>
+  </main>
+
+  <script type="application/json" id="lesson-initial-state">$initial_state</script>
+  <script type="application/json" id="lesson-computations">$computations</script>
+  <script type="application/json" id="lesson-outputs">$outputs</script>
+  <script>
+$runtime_javascript
+  </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "title": "A Small Arithmetic Dataflow",
+    "subtitle": "Explore how two inputs propagate through reusable operations"
+  },
+  "learning_outcomes": [
+    {
+      "id": "trace_numeric_flow",
+      "level": "apply",
+      "description": "Trace how changing either input changes several deterministic arithmetic results."
+    }
+  ],
+  "sections": [
+    {
+      "id": "numeric_context",
+      "title": "Inputs and derived quantities",
+      "kind": "introduction",
+      "parent_id": null,
+      "paper_explanation": "This synthetic example defines two scalar inputs and derives their sum, difference, product, and ratio.",
+      "simple_explanation": "Change either number and follow the same value through several operations.",
+      "boundaries": [
+        {
+          "kind": "assumption",
+          "description": "The second input stays above zero so the displayed ratio is defined.",
+          "basis": "example",
+          "source_refs": []
+        }
+      ],
+      "source_refs": []
+    },
+    {
+      "id": "numeric_explorer",
+      "title": "Explore the arithmetic flow",
+      "kind": "example",
+      "parent_id": "numeric_context",
+      "paper_explanation": "The computation graph applies only registry operations and executes them in declared order.",
+      "simple_explanation": "The charts and values below always read the latest browser-side computation results.",
+      "interactive_blocks": [
+        {
+          "id": "two_number_flow",
+          "title": "Two-number explorer",
+          "variables": [
+            {
+              "id": "left",
+              "type": "scalar",
+              "default": 2.0
+            },
+            {
+              "id": "right",
+              "type": "scalar",
+              "default": 5.0
+            }
+          ],
+          "controls": [
+            {
+              "id": "left_input",
+              "type": "number_input",
+              "variable": "left",
+              "label": "Left value",
+              "min": -10,
+              "max": 10,
+              "step": 0.5
+            },
+            {
+              "id": "right_slider",
+              "type": "slider",
+              "variable": "right",
+              "label": "Right value",
+              "min": 1,
+              "max": 10,
+              "step": 0.5
+            }
+          ],
+          "computations": [
+            {
+              "id": "total",
+              "op": "add",
+              "inputs": ["left", "right"]
+            },
+            {
+              "id": "difference",
+              "op": "subtract",
+              "inputs": ["left", "right"]
+            },
+            {
+              "id": "product",
+              "op": "multiply",
+              "inputs": ["left", "right"]
+            },
+            {
+              "id": "ratio",
+              "op": "divide",
+              "inputs": ["left", "right"]
+            }
+          ],
+          "visualizations": [
+            {
+              "id": "input_total_bars",
+              "type": "bar_chart",
+              "data": ["left", "right", "total"],
+              "title": "Inputs and total",
+              "labels": ["Left", "Right", "Total"]
+            },
+            {
+              "id": "derived_line",
+              "type": "line_chart",
+              "data": ["left", "total", "product"],
+              "title": "Derived sequence",
+              "labels": ["Left", "Total", "Product"]
+            },
+            {
+              "id": "result_pipeline",
+              "type": "step_pipeline",
+              "data": ["left", "right", "total", "product"],
+              "title": "Arithmetic stages",
+              "labels": ["Left", "Right", "Sum", "Product"]
+            },
+            {
+              "id": "ratio_display",
+              "type": "matrix_display",
+              "data": "ratio",
+              "title": "Current ratio"
+            }
+          ],
+          "intermediate_values": [
+            {
+              "label": "Sum",
+              "data": "total"
+            },
+            {
+              "label": "Difference",
+              "data": "difference"
+            },
+            {
+              "label": "Product",
+              "data": "product"
+            },
+            {
+              "label": "Ratio",
+              "data": "ratio"
+            }
+          ],
+          "guided_explorations": [
+            {
+              "title": "Change the left input",
+              "instruction": "Enter a new left value while holding the right value fixed.",
+              "observe": "Compare how the sum, difference, product, and ratio respond.",
+              "explanation": "Every result depends on the left input through a different registry operation."
+            },
+            {
+              "title": "Move the right slider",
+              "instruction": "Move the right value across its range.",
+              "observe": "Watch the bars, line, pipeline, and intermediate values update together.",
+              "explanation": "All visual components resolve their values from the same recomputed context."
+            }
+          ]
+        }
+      ],
+      "boundaries": [
+        {
+          "kind": "limitation",
+          "description": "This is a deterministic arithmetic demonstration, not a scientific model.",
+          "basis": "example",
+          "source_refs": []
+        }
+      ],
+      "source_refs": []
+    }
+  ],
+  "mind_map": {
+    "concepts": [
+      {
+        "id": "numeric_dataflow",
+        "name": "Numeric dataflow",
+        "summary": "Shared inputs feed several deterministic operations and displays.",
+        "section_id": "numeric_explorer"
+      }
+    ],
+    "relationships": []
+  },
+  "assessment": [
+    {
+      "id": "trace_sum",
+      "kind": "short_answer",
+      "prompt": "If the left input increases by one, how does the sum change when the right input stays fixed?",
+      "correct_answer": "The sum increases by one.",
+      "explanation": "The sum is the left input plus the fixed right input.",
+      "learning_outcome_ids": ["trace_numeric_flow"],
+      "source_refs": []
+    }
+  ]
+}
