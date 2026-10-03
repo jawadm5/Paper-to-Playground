@@ -44,14 +44,39 @@ class ContentIdNormalizationTests(unittest.TestCase):
         self.assertEqual(again, result)
         self.assertEqual(second_changes, [])
 
-    def test_canonical_collisions_raise_before_mutation(self):
-        for other in ("query", "QUERY"):
-            content = self.fixture()
-            content["concepts"].append({"id": other, "section_id": "Intro"})
-            before = deepcopy(content)
-            with self.subTest(other=other), self.assertRaisesRegex(ValidationError, "casing collision"):
-                normalize_content_ids(content)
-            self.assertEqual(content, before)
+    def test_case_distinct_ids_are_disambiguated_with_their_typed_references(self):
+        content = self.fixture()
+        model = content["sections"][1]["mathematical_model"]
+        model["variables"].extend([{"id": "q", "notation": "q"}, {"id": "q_2", "notation": "q_2"}])
+        model["equations"][0].update(latex="Q = q + q_2", variable_ids=["Q", "q", "q_2"])
+        model["steps"][0].update(input_ids=["Q", "q", "q_2"])
+        before = deepcopy(content)
+        result, changes = normalize_content_ids(content)
+        self.assertEqual(content, before)
+        normalized = result["sections"][1]["mathematical_model"]
+        self.assertEqual([v["id"] for v in normalized["variables"]], ["q_3", "out", "q", "q_2"])
+        self.assertEqual(normalized["equations"][0]["variable_ids"], ["q_3", "q", "q_2"])
+        self.assertEqual(normalized["steps"][0]["input_ids"], ["q_3", "q", "q_2"])
+        self.assertEqual(normalized["equations"][0]["latex"], "Q = q + q_2")
+        self.assertEqual([v["notation"] for v in normalized["variables"]], ["Q", "OUT", "q", "q_2"])
+        self.assertEqual(result["sections"][0]["source_refs"], ["Intro", "Q"])
+        self.assertEqual(normalize_content_ids(result), (result, []))
+        self.assertTrue(changes)
+
+    def test_suffixes_respect_length_and_reserve_later_canonical_names(self):
+        base = "a" * 64
+        reserved = "a" * 62 + "_2"
+        content = {"concepts": [{"id": base.upper()}, {"id": base}, {"id": reserved}]}
+        result, _ = normalize_content_ids(content)
+        ids = [c["id"] for c in result["concepts"]]
+        self.assertEqual(ids, ["a" * 62 + "_3", base, reserved])
+        self.assertTrue(all(len(identifier) <= 64 for identifier in ids))
+        self.assertEqual(normalize_content_ids(result), (result, []))
+
+    def test_identical_duplicates_remain_ambiguous_for_validation(self):
+        content = {"concepts": [{"id": "Q"}, {"id": "Q"}, {"id": "q"}]}
+        result, _ = normalize_content_ids(content)
+        self.assertEqual([c["id"] for c in result["concepts"]], ["q_2", "q_2", "q"])
 
     def test_prose_external_refs_and_syntactically_unsafe_ids_remain_exact(self):
         content = self.fixture()

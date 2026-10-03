@@ -6,10 +6,11 @@ from pathlib import Path
 import re
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 
 from PIL import Image
 
-from playground_v2.renderer import render, _math
+from playground_v2.renderer import render, _math, _notation
 from playground_v2.validation import ValidationError
 from test_v2_experience import fixture
 
@@ -122,13 +123,54 @@ class RendererTests(unittest.TestCase):
         second = render(self.handoff, self.spec, second_dir, source_dir=self.root)
         self.assertEqual(original, (second_dir / 'index.html').read_bytes())
         self.assertEqual(first['html_sha256'], second['html_sha256'])
-        self.assertEqual(len(first['renderer_assets_sha256']), 5)
+        self.assertEqual(len(first['renderer_assets_sha256']), 6)
 
     def test_math_typesets_common_notation_and_has_explicit_fallback(self):
         self.assertIn('<mfrac>', _math(r'\frac{QK^{T}}{\sqrt{d_k}}'))
         self.assertIn('<msqrt>', _math(r'\sqrt{x}'))
         self.assertIn('Equation notation (TeX)', _math(r'\unsupported{x}'))
         self.assertNotIn('<script>', _math('<script>'))
+
+    def test_math_sum_limits_share_one_operator_in_either_order(self):
+        for equation in (r'H = -\sum_{i=1}^{n} p_i \log p_i',
+                         r'H = -\sum ^{n} _{i=1} p_i \log p_i',
+                         r'\sum\limits_{i=1}^{n} p_i'):
+            with self.subTest(equation=equation):
+                tree = ET.fromstring(_math(equation))
+                limits = tree.find('.//munderover')
+                self.assertIsNotNone(limits)
+                self.assertEqual([child.tag for child in limits], ['mo', 'mrow', 'mrow'])
+                self.assertEqual([''.join(child.itertext()) for child in limits], ['∑', 'i=1', 'n'])
+                self.assertIsNone(tree.find('.//msup/msub'))
+                self.assertIsNone(tree.find('.//msub/msup'))
+
+    def test_math_combines_scripts_inside_fractions_and_rejects_missing_scripts(self):
+        for equation in (r'\frac{x_i^2}{\sqrt{d_k}}', r'\frac{x^2_i}{\sqrt{d_k}}'):
+            with self.subTest(equation=equation):
+                tree = ET.fromstring(_math(equation))
+                combined = tree.find('.//mfrac/mrow/msubsup')
+                self.assertIsNotNone(combined)
+                self.assertEqual([''.join(child.itertext()) for child in combined], ['x', 'i', '2'])
+                self.assertIsNotNone(tree.find('.//msqrt/mrow/msub'))
+        for invalid in (r'x_', r'x^}', r'x_i_j', r'_i', r'\frac{x}{'):
+            self.assertIn('Equation notation (TeX)', _math(invalid))
+
+    def test_math_variable_notation_typesets_functions_fractions_and_scripts(self):
+        expected = {'d_k': 'msub', 'QK^T': 'msup', 'QK^T / sqrt(d_k)': 'mfrac',
+                    'softmax(QK^T / sqrt(d_k))': 'mfrac', '-p_i log2 p_i': 'msub'}
+        for notation, tag in expected.items():
+            with self.subTest(notation=notation):
+                tree = ET.fromstring(_notation(notation))
+                self.assertEqual(tree.attrib['display'], 'inline')
+                self.assertIsNotNone(tree.find('.//' + tag))
+        softmax = ET.fromstring(_notation('softmax(QK^T / sqrt(d_k))'))
+        self.assertEqual(softmax.find('.//mi').text, 'softmax')
+        self.assertIsNotNone(softmax.find('.//mfrac/mrow/msqrt/mrow/msub'))
+        attention = ET.fromstring(_notation('Attention(Q,K,V)'))
+        self.assertEqual(attention.find('.//mi').text, 'Attention')
+        self.assertEqual(''.join(attention.itertext()), 'Attention(Q,K,V)')
+        self.assertNotIn('<script>', _notation('<script>'))
+        self.assertIn('notation-fallback', _notation('sqrt(x'))
 
 
 if __name__ == '__main__':

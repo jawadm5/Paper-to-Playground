@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from PIL import Image
 
-from playground_v2.application import RunBudget, build, copy_handoff, main
+from playground_v2.application import RunBudget, build, copy_handoff, main, generate_experience, CALL2_SCHEMA
 from playground_v2.pipeline import write_json
 from playground_v2.provider import ProviderError
 
@@ -102,6 +102,32 @@ class ApplicationIntegrationTests(unittest.TestCase):
         write_json(self.handoff_path, self.handoff)
         write_json(self.experience_path, self.experience)
 
+    def test_generation_choice_profile_is_sent_for_initial_and_repair_without_changing_saved_schema(self):
+        from jsonschema import Draft202012Validator
+        original = CALL2_SCHEMA.read_bytes()
+        canonical = json.loads(original)
+        report = {"attempts": 1, "usage": {"completion_tokens": 1}}
+        for repairing in (False, True):
+            with self.subTest(repairing=repairing), patch(MODULE + "._generate", return_value=(self.experience, report)) as provider:
+                generate_experience(self.handoff, self.output, model="test/model", key="fake",
+                                    budget=RunBudget(time.monotonic()),
+                                    candidate=self.experience if repairing else None, diagnostic="test")
+                arguments = provider.call_args.kwargs
+                profile = json.loads(arguments["extra_text"])["experience_schema"] if repairing else arguments["response_schema"]
+                validator = Draft202012Validator(profile)
+                validator.validate(self.experience)
+                for changes in ({"kind": "numeric"}, {"expected": 1}, {"tolerance": 0.1},
+                                {"correct_option_id": None}, {"options": []}, {"output_id": "mean"}):
+                    invalid = deepcopy(self.experience)
+                    invalid["questions"][0].update(changes)
+                    self.assertTrue(list(validator.iter_errors(invalid)), changes)
+        self.assertEqual(CALL2_SCHEMA.read_bytes(), original)
+        self.assertIn("numeric", canonical["$defs"]["question"]["properties"]["kind"]["enum"])
+        saved_numeric = deepcopy(self.experience)
+        saved_numeric["questions"][0].update(kind="numeric", options=[], correct_option_id=None,
+                                               expected=5, tolerance=0.01, output_id="mean")
+        Draft202012Validator(canonical).validate(saved_numeric)
+
     def test_handoff_reuse_checks_input_before_copy_and_copies_verified_images(self):
         different = {**self.handoff["input"], "focus": "Another question"}
         with self.assertRaisesRegex(ValueError, "differs"):
@@ -167,6 +193,8 @@ class ApplicationIntegrationTests(unittest.TestCase):
         self.assertEqual(provider.call_args.kwargs["stage"], "call2-repair")
         self.assertEqual(provider.call_args.kwargs["max_tokens"], 2000)
         self.assertIn(notes_path.read_text(encoding="utf-8"), provider.call_args.kwargs["extra_text"])
+        review_schema = json.loads(provider.call_args.kwargs["extra_text"])["experience_schema"]
+        self.assertIn("numeric", review_schema["$defs"]["question"]["properties"]["kind"]["enum"])
         self.assertEqual(json.loads((self.output / "experience.json").read_text(encoding="utf-8"))["introduction"], revised)
         self.assertEqual(json.loads(self.experience_path.read_text(encoding="utf-8")), self.experience)
         summary = json.loads((self.output / "summary.json").read_text(encoding="utf-8"))
@@ -185,6 +213,35 @@ class ApplicationIntegrationTests(unittest.TestCase):
         self.assertTrue((self.output / "call2-candidate.json").is_file())
         self.assertTrue((self.output / "call2-repair.json").is_file())
         self.assertEqual(json.loads((self.output / "summary.json").read_text(encoding="utf-8"))["status"], "failed")
+
+    def test_two_successive_repairs_keep_each_provider_record_and_revalidate(self):
+        invalid = deepcopy(self.experience)
+        invalid["sections"][0]["section_id"] = "missing_section"
+        invalid["questions"][0]["outcome_id"] = "missing_outcome"
+        patches = [
+            {"patches": [{"path": "/sections/0/section_id", "value": self.experience["sections"][0]["section_id"]}]},
+            {"patches": [{"path": "/questions/0/outcome_id", "value": self.experience["questions"][0]["outcome_id"]}]},
+        ]
+        responses = [{"status": 200, "id": f"fixture_{index}", "content": json.dumps(value),
+                      "finish_reason": "stop", "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}}
+                     for index, value in enumerate([invalid, *patches])]
+        with patch("playground_v2.provider.run_worker", side_effect=responses) as worker:
+            code = build(self.handoff["input"], self.output, model="test/model", key="fake-key", from_content=self.handoff_path)
+        self.assertEqual(code, 0)
+        self.assertEqual(worker.call_count, 3)
+        summary = json.loads((self.output / "summary.json").read_text(encoding="utf-8"))
+        self.assertEqual((summary["attempts"], summary["experience_repair_attempts"]), (3, 2))
+        self.assertEqual(summary["usage"], {"prompt_tokens": 30, "completion_tokens": 60, "total_tokens": 90})
+        stages = ["call2", "call2-repair", "call2-repair-2"]
+        self.assertEqual([item["stage"] for item in summary["provider_reports"]], stages)
+        for stage in stages:
+            for directory in ("requests", "responses", "reports"):
+                self.assertTrue((self.output / directory / f"{stage}.json").is_file())
+        request = json.loads((self.output / "requests/call2-repair-2.json").read_text(encoding="utf-8"))
+        self.assertIn("replacement-patch response schema", request["messages"][1]["content"][1]["text"])
+        self.assertEqual(json.loads((self.output / "experience.json").read_text(encoding="utf-8")), self.experience)
+        events = [json.loads(line) for line in (self.output / "trace.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len([event for event in events if event["action"] == "api_finished"]), 3)
 
     def test_failed_attempt_without_usage_remains_charged_and_reviewable(self):
         error = ProviderError("Provider timed out", report={"attempts": 1, "stage": "call2", "usage": None})

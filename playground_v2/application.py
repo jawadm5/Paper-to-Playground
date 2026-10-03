@@ -85,15 +85,27 @@ def copy_handoff(path, case, output):
 
 
 def generate_experience(handoff, output, *, model, key, budget, prompt_path=CALL2_PROMPT,
-                        candidate=None, diagnostic=None):
+                        candidate=None, diagnostic=None, repair_attempt=1, choice_only=True):
     """Call 2 sees validated teaching content and trusted visual metadata."""
     context = {"input": handoff["input"], "content": handoff["content"],
                "visuals": handoff["source"]["visuals"],
                "source": {"title": handoff["source"]["title"],
                           "resolved_url": handoff["source"]["resolved_url"]}}
     repairing = candidate is not None
-    stage = "call2-repair" if repairing else "call2"
+    if repairing and repair_attempt not in (1, 2, 3):
+        raise ValueError("Call 2 allows at most three repair passes")
+    stage = ("call2-repair" + (f"-{repair_attempt}" if repair_attempt > 1 else "")) if repairing else "call2"
     schema = read_json(CALL2_SCHEMA)
+    # Narrow only the model-facing generation profile; saved numeric lessons
+    # still use the canonical schema and their existing trusted validation.
+    if choice_only:
+        question = schema["$defs"]["question"]["properties"]
+        question["kind"] = {"enum": ["choice"]}
+        question["expected"] = {"type": "null"}
+        question["tolerance"] = {"type": "null"}
+        question["correct_option_id"] = {"$ref": "#/$defs/id"}
+        question["options"]["minItems"] = 2
+        question["output_id"] = {"type": "null"}
     extra = (json.dumps({"candidate": candidate, "diagnostic": str(diagnostic),
                          "experience_schema": schema}, ensure_ascii=False, allow_nan=False)
              if repairing else None)
@@ -122,6 +134,7 @@ def build(case, output, *, model, key, from_content=None, experience_path=None,
                "started_at": datetime.now(timezone.utc).isoformat(),
                "run_kind": "review_experience" if review_notes else "render_saved" if experience_path else "from_content" if from_content else "generation",
                "scientific_review": "not_run", "browser_checks": "not_run",
+               "experience_repair_attempts": 0,
                "limits": {"requests": MAX_REQUESTS, "completion_tokens": MAX_COMPLETION, "seconds": DEADLINE}}
 
     def event(stage, action, result, **details):
@@ -177,25 +190,36 @@ def build(case, output, *, model, key, from_content=None, experience_path=None,
             (output / "review-notes.txt").write_text(notes, encoding="utf-8")
             event("call2", "source_review_revision", "started")
             replacements = generate_experience(handoff, output, model=model, key=key, budget=budget,
-                                               candidate=candidate, diagnostic=notes)
+                                               candidate=candidate, diagnostic=notes, choice_only=False)
+            summary["experience_repair_attempts"] = 1
             write_json(output / "call2-repair.json", replacements)
             candidate = apply_replacements(candidate, replacements)
             write_json(output / "call2-candidate-repaired.json", candidate)
             summary["experience_repaired"] = True
-        try:
-            validate_experience(candidate, handoff)
-        except ValueError as error:
-            summary["initial_experience_error"] = str(error)
-            if not repair or experience_path:
-                raise
-            event("call2", "repair", "started", diagnostic=str(error))
-            replacements = generate_experience(handoff, output, model=model, key=key, budget=budget,
-                                               candidate=candidate, diagnostic=error)
-            write_json(output / "call2-repair.json", replacements)
-            candidate = apply_replacements(candidate, replacements)
-            write_json(output / "call2-candidate-repaired.json", candidate)
-            validate_experience(candidate, handoff)
-            summary["experience_repaired"] = True
+        while True:
+            try:
+                validate_experience(candidate, handoff)
+                break
+            except ValueError as error:
+                summary.setdefault("initial_experience_error", str(error))
+                if not repair or experience_path or review_notes or summary["experience_repair_attempts"] >= 3:
+                    raise
+                attempt = summary["experience_repair_attempts"] + 1
+                suffix = f"-{attempt}" if attempt > 1 else ""
+                stage = "call2-repair" + suffix
+                event(stage, "repair", "started", attempt=attempt, diagnostic=str(error))
+                replacements = generate_experience(handoff, output, model=model, key=key, budget=budget,
+                                                   candidate=candidate, diagnostic=error, repair_attempt=attempt)
+                summary["experience_repair_attempts"] = attempt
+                write_json(output / (stage + ".json"), replacements)
+                revised = apply_replacements(candidate, replacements)
+                write_json(output / ("call2-candidate-repaired" + suffix + ".json"), revised)
+                if revised == candidate:
+                    event(stage, "repair", "no_change", attempt=attempt)
+                    raise ValueError(f"Call 2 repair made no change; unresolved validation: {error}") from error
+                candidate = revised
+                summary["experience_repaired"] = True
+                event(stage, "repair", "applied", attempt=attempt, replacements=len(replacements["patches"]))
         write_json(output / "experience.json", candidate)
         event("call2", "validate", "passed", questions=len(candidate["questions"]), experiments=len(candidate["experiments"]))
         if budget.seconds_left <= 1:

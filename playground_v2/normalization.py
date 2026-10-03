@@ -9,10 +9,12 @@ _SAFE_ID = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,63}", re.ASCII)
 
 
 def normalize_content_ids(content: dict) -> tuple[dict, list[dict]]:
-    """Lowercase safe definition IDs and their typed references, with an audit.
+    """Canonicalize safe definition IDs and their typed references, with an audit.
 
     Source/visual identifiers and all free text remain byte-for-byte unchanged.
     Unknown fields and structurally malformed values remain for normal validation.
+    Case-distinct definitions receive stable suffixes; identical duplicate IDs
+    remain duplicates so validation can reject their ambiguous references.
     """
     if not isinstance(content, dict):
         raise ValidationError("Content identifier normalization requires a JSON object")
@@ -69,16 +71,34 @@ def normalize_content_ids(content: dict) -> tuple[dict, list[dict]]:
         reference(relationship, "from", path, "concept")
         reference(relationship, "to", path, "concept")
 
-    mappings = {}
-    canonical_names = {}
-    for _item, path, kind, identifier in definitions:
-        canonical = identifier.lower() if _SAFE_ID.fullmatch(identifier) else identifier
-        previous = canonical_names.setdefault(canonical, identifier)
-        if previous != identifier:
-            raise ValidationError("Content identifier casing collision: " + repr(previous) +
-                                  " and " + repr(identifier) + " would both identify " + repr(canonical))
-        if canonical != identifier:
-            mappings[(kind, identifier)] = canonical
+    groups = {}
+    for _item, _path, _kind, identifier in definitions:
+        if _SAFE_ID.fullmatch(identifier):
+            originals = groups.setdefault(identifier.lower(), [])
+            if identifier not in originals:
+                originals.append(identifier)
+    # Reserve every original spelling after lowercasing before allocating any
+    # suffix. A later q_2 definition must never be stolen by an earlier Q.
+    reserved = set(groups)
+    resolved = {}
+    for canonical, originals in groups.items():
+        winner = canonical if canonical in originals else originals[0]
+        resolved[winner] = canonical
+        for identifier in originals:
+            if identifier == winner:
+                continue
+            number = 2
+            while True:
+                suffix = "_" + str(number)
+                candidate = canonical[:64 - len(suffix)] + suffix
+                if candidate not in reserved:
+                    break
+                number += 1
+            reserved.add(candidate)
+            resolved[identifier] = candidate
+    mappings = {(kind, identifier): resolved[identifier]
+                for _item, _path, kind, identifier in definitions
+                if identifier in resolved and resolved[identifier] != identifier}
     changes = []
     for item, path, kind, identifier in definitions:
         if (kind, identifier) in mappings:

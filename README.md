@@ -1,94 +1,86 @@
 # Paper-to-Playground
 
-A research paper becomes an offline Research lab lesson: continuous reading, a concept map, working experiments, and an outcome-linked assessment. The learner's request determines coverage, from one mechanism to a whole-paper overview.
+**Team: Jawad Marji and Ali Zahreddine**
+
+Turn a research paper into a self-contained, offline learning page. Students can read a simpler explanation, explore a connected concept map, adjust working experiments, and complete an assessment. The requested focus determines whether the lesson covers one mechanism or a broader paper overview.
 
 ## Run
 
-Python 3.11 is required. Install the pinned dependencies and set `OPENROUTER_API_KEY` in the terminal or Windows user environment. Windows keys saved with `setx` are read immediately even in an already-open terminal.
+Use Python 3.11. Set `OPENROUTER_API_KEY` in the environment before generation. On Windows, an existing user environment value saved with `setx` is also supported.
 
-```powershell
-python -m pip install -r requirements.txt
-python agent.py --input examples/v2-attention-focused.json --output out/my-lesson --model deepseek/deepseek-v4.1-flash
-```
-
-Use `.\.venv\Scripts\python.exe` instead of `python` for the prepared local environment. Output must be new or empty. Open the resulting `index.html` directly in Chromium/Edge; the page includes its scripts, styles, data, and source images. The learner needs no server, API key, or internet connection.
-
-Input has three strings:
+Create `case.json` with these three fields, or copy [the attention input](examples/attention-input.json):
 
 ```json
 {
-  "source_url": "https://arxiv.org/html/1706.03762v7",
-  "focus": "Explain scaled dot-product attention and the distinct roles of queries, keys, and values.",
-  "audience": "Engineering undergraduates familiar with vectors and matrices."
+  "source_url": "https://arxiv.org/abs/1706.03762v7",
+  "focus": "Explain scaled dot-product attention and the roles of queries, keys, and values.",
+  "audience": "Engineering undergraduates familiar with vectors."
 }
 ```
 
-Use a public full-text HTML/PDF or arXiv URL. Internet access is used during generation to retrieve the paper and call OpenRouter, consistent with the user's clarification. The final page works offline.
+Run the submission interface from the repository root:
 
-## Architecture
-
-1. Python extracts source blocks, equations, tables, captions, and bounded local images.
-2. Call 1 creates validated section-first teaching JSON with simple and technical explanations, intuition, boundaries, learning outcomes, and concept links.
-3. Call 2 selects predefined components and supplies controls, safe mathematical expressions, data bindings, guided challenges, figure descriptions, and assessment questions.
-4. A deterministic renderer packages the content into one HTML file. Models never generate HTML, CSS, or JavaScript.
-
-The normal path makes two model requests. Each stage permits at most one small validation repair; there are no transport retries or model switches. The complete run enforces a 590-second deadline, 10 attempted requests, and 30,000 completion tokens. Default completion allowances are 18,000 + 2,000 for Call 1 and 7,000 + 2,000 for Call 2. Unknown usage retains its reserved allowance. All calls use the supplied model; the testing profile is DeepSeek V4.1 Flash through OpenRouter.
-
-## Current examples
-
-Start with [the enhanced attention lesson](out/attention-current/index.html) and its [actual Call 2 JSON](out/attention-current/experience.json). It was generated from a fresh source retrieval in two model calls without repairs or manual content changes. Both the initial generation and the final renderer-only label polish are recorded, and rerendering the same JSON reproduces the final HTML byte for byte.
-
-[The entropy lesson](out/entropy-current/index.html) demonstrates the simplified reading flow and PDF-page filtering. Full PDF page images remain internal model evidence; the renderer only displays actual source figures. Its previously reviewed JSON was reused without another API request.
-
-The matching submission pair is [input](examples/attention-input.json) and [self-contained output](examples/attention-output.html). See [progress](docs/PROGRESS.md) for successful and rejected generation attempts, test boundaries, and component coverage. The current prompt selects multiple-choice predictions; numeric grading remains supported for compatible validated experiences.
-
-## Review without repeating work
-
-Reuse an existing teaching handoff to generate only Call 2 and HTML:
-
-```powershell
-python agent.py --input examples/v2-attention-focused.json --from-content out/attention-current/paper_content.json --output out/my-lesson --model deepseek/deepseek-v4.1-flash
+```sh
+python -m pip install -r requirements.txt
+python agent.py --input case.json --output out --model MODEL_ID
 ```
 
-Render saved artifacts without an API call:
+Replace `MODEL_ID` with the OpenRouter model identifier. The tested profile is **`deepseek/deepseek-v4.1-flash`**. The output directory must be new or empty; use another path for subsequent runs.
 
-```powershell
-python agent.py --input examples/v2-attention-focused.json --from-content out/attention-current/paper_content.json --experience out/attention-current/experience.json --output out/rendered-again
+Open `out/index.html` directly in a current Chromium or Edge browser. All scripts, styles, data, equations, and selected source images are embedded. The final page needs no server, API key, or internet connection. Generation uses the internet to retrieve the paper and call OpenRouter. No Node, npm, browser installation, or frontend build is required to run the generator.
+
+## Included examples
+
+- [Attention input](examples/attention-input.json) and [offline output](examples/attention-output.html): the matching submission example pair.
+- [Attention overview input](examples/attention-overview-input.json): a broader learning request.
+- [Entropy input](examples/entropy-input.json): probability and uncertainty from Shannon's paper.
+
+Generated working directories are local and ignored by Git. The committed HTML example can be opened from a fresh checkout.
+
+## How it works
+
+1. Python retrieves a public HTML/PDF or arXiv source and prepares text, equations, captions, and bounded image evidence.
+2. **Call 1** produces validated teaching JSON: outcomes, sections, simple explanations, intuition, technical detail, and concept relationships.
+3. **Call 2** produces validated interaction JSON: controls, calculations, graphs, guided challenges, and assessment questions.
+4. A deterministic renderer builds the offline HTML using project-owned components. Models do not generate executable HTML, CSS, or JavaScript.
+
+The normal path uses two model calls. Call 1 allows one bounded validation repair; Call 2 allows up to three, stopping when valid or when a repair makes no change. The run enforces a 590-second deadline, at most 10 attempted requests, and a 30,000 completion-token budget. Default initial allowances are 18,000 tokens for Call 1 and 7,000 for Call 2, plus up to 2,000 for each repair, capped by the remaining whole-run budget. All calls use the supplied model.
+
+## Output and iteration
+
+| File | Purpose |
+| --- | --- |
+| `index.html` | Student-facing offline lesson |
+| `paper_content.json` | Validated Call 1 teaching content |
+| `experience.json` | Validated Call 2 interaction design |
+| `assets/` | Extracted source-image handoff |
+| `summary.json` | Status, timing, aggregate token usage, costs, and validation results |
+| `reports/`, `requests/`, `responses/` | Per-call accounting and key-free request/response artifacts |
+| `trace.jsonl` | Recorded pipeline events and timing |
+
+Edit [Call 1's prompt](docs/v2/prompts/call1-content.md), [Call 2's prompt](docs/v2/prompts/call2-experience.md), or the renderer assets in `playground_v2/assets/`. The contracts and schemas are documented in [the documentation index](docs/README.md).
+
+To render saved JSON without a model request, use the same input case and its saved artifacts:
+
+```sh
+python agent.py --input case.json --from-content previous-run/paper_content.json --experience previous-run/experience.json --output rendered-again
 ```
 
-For one targeted model revision of a saved experience, add `--review-notes path/to/feedback.txt` and `--model MODEL` to the saved-artifact command. This preserves the original and records the feedback and patch before full revalidation.
-
-`agent_v2.py` is retained for source/Call 1 development, including `--prepare-only`, `--prepared-dir`, saved candidates, and explicit review notes. See [the Call 1 guide](docs/v2/04-runtime.md).
-
-## What to inspect
-
-- `index.html`: the student-facing deliverable.
-- `paper_content.json` and `assets/`: the validated teaching content and source-image handoff.
-- `experience.json`: the validated Call 2 structure. Start here when reviewing controls, charts, and questions.
-- `call2-candidate.json` and optional repair files: the original response and exact changes.
-- `requests/`, `responses/`, `reports/`: key-free payloads, raw public model responses, and per-call accounting.
-- `summary.json`: final status, aggregate usage for this invocation, budgets, checks, and provenance of reused artifacts.
-- `trace.jsonl`: stage/action/result events, timing, call usage, validations, and revisions.
-
-Edit [Call 1's prompt](docs/v2/prompts/call1-content.md), [Call 2's prompt](docs/v2/prompts/call2-experience.md), or the renderer-owned components in `playground_v2/assets/`. Contracts are in `docs/v2/schemas/`; calculation operations and semantic checks are in `playground_v2/experience.py`.
+Omit `--experience` and supply `--model MODEL_ID` to regenerate only Call 2. `content_agent.py` is the separate source-preparation and Call 1 development utility; see [the runtime guide](docs/v2/04-runtime.md).
 
 ## Verification and limits
 
-```powershell
+The local Python suite has **118 passing tests**. Responsive, offline, interaction, assessment, and concept-layout browser checks are recorded separately in [the progress log](docs/PROGRESS.md).
+
+```sh
 python -m unittest discover -s tests -p "test_v2*.py" -v
 python -m pip check
 ```
 
-Controls and calculations share the same bounded mathematical interpreter during Python validation and in the browser. Validation checks source and section IDs, image paths, expression dependencies, dimensions, endpoint calculations, responsive controls, assessment coverage, and numerical scenario answers. Browser verification is separate from generator execution and is recorded in [progress](docs/PROGRESS.md). Passing structural checks does not certify every scientific claim or teaching choice.
+Validation checks source references, image paths, component contracts, expression dependencies, dimensions, and numerical scenarios. Structural and calculation checks do not certify every scientific explanation. Unsupported computations and evidence that cannot fit the extraction limits fail with diagnostics. Full PDF page images are model evidence; they are not presented as extracted figures. The bounded MathML renderer retains visible notation when it cannot format an equation.
 
-The renderer uses native controls, SVG, system fonts, and a bounded MathML adapter with visible fallback notation. Figures that cannot be extracted remain explicitly caption-only. Longer scanned PDFs beyond the image budget fail. Unsupported computations fail instead of accepting generated executable code. Assessment feedback appears only after final submission; switching modes preserves current answers and experiment state.
+Exit codes are `0` for completion, `2` for invalid input/configuration, and `4` for generation or validation failure. Failed runs preserve available candidates and diagnostics.
 
-Exit codes: 0 complete; 2 invalid input/configuration; 4 failed generation or validation. Failures retain available candidates and diagnostics. A failed Call 2 does not pretend the Call 1 handoff is a complete lesson.
+## Credits
 
-## Submission and credits
-
-Team member names: **to be supplied by the team**. Submit the repository URL and selected full commit SHA through the course process; this task does not commit, push, or submit on the owner's behalf. The root `agent.py` implements the required three-argument invocation. The generator needs no Node/npm or browser installation during assessment; MiniRacer runs portable calculation checks.
-
-Python dependencies are pinned in `requirements.txt`: Requests/urllib3, Beautiful Soup, pypdf, pypdfium2, Pillow, jsonschema, MiniRacer, and their transitive dependencies. Browser UI and calculation components are project-owned; no CDN libraries or fonts are loaded. Source artwork remains attributed to the paper. [Design references](docs/06-design-references.md) and the [Research lab handoff](docs/ui/RESEARCH-LAB-HANDOFF.md) record inspiration and implementation choices.
-
-The independent `claude` directory remains outside this implementation and cleanup. See [documentation](docs/README.md), [integration contract](docs/v2/05-complete-generator.md), and [progress](docs/PROGRESS.md) for current evidence and the cleanup record.
+Dependencies are pinned in [requirements.txt](requirements.txt). The browser interface, concept layout, diagrams, and calculation components are project-owned and use no CDN libraries or web fonts. Original paper images retain source attribution. [Design references](docs/06-design-references.md) document the learning and interface patterns that informed the project.

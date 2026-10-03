@@ -46,6 +46,8 @@ async function assertSelection(page, concept, handoff, baselineNodes, baselineVi
     index: Number(item.dataset.edge), stroke: item.getAttribute('stroke'), width: Number(item.getAttribute('stroke-width'))
   })));
   assert.equal(edges.length, handoff.content.relationships.length, label + ': relationships disappeared');
+  assert.deepEqual(edges.map(edge => edge.index).sort((a, b) => a - b),
+    handoff.content.relationships.map((_, index) => index), label + ': relationship indices changed or duplicated');
   for (const edge of edges) {
     const relationship = handoff.content.relationships[edge.index];
     assert.ok(relationship, label + ': unknown relationship index');
@@ -66,6 +68,26 @@ async function checkSelection(page, handoff, width) {
   const baselineNodes = await nodes(page);
   assert.deepEqual(baselineNodes.map(node => node.id).sort(), handoff.content.concepts.map(node => node.id).sort());
   assert.equal(await page.locator('.concept-world').isVisible(), true, width + ': real graph replaced by cards');
+  assert.equal(await page.locator('.concept-symbol').count(), 0, width + ': map reintroduced unwanted node icons');
+  const geometry = await page.locator('.concept-canvas').evaluate(canvas => {
+    const bounds = canvas.getBoundingClientRect();
+    const boxes = [...canvas.querySelectorAll('[data-concept]')].map(node => {
+      const rect = node.querySelector('rect').getBoundingClientRect();
+      return {id: node.dataset.concept, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom};
+    });
+    return {bounds: {left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom}, boxes};
+  });
+  for (let i = 0; i < geometry.boxes.length; i++) {
+    const box = geometry.boxes[i], bounds = geometry.bounds;
+    assert.ok(box.left >= bounds.left - 1 && box.right <= bounds.right + 1 &&
+      box.top >= bounds.top - 1 && box.bottom <= bounds.bottom + 1,
+      width + ': Fit clips node ' + box.id);
+    for (const other of geometry.boxes.slice(i + 1)) {
+      const overlapX = Math.min(box.right, other.right) - Math.max(box.left, other.left);
+      const overlapY = Math.min(box.bottom, other.bottom) - Math.max(box.top, other.top);
+      assert.ok(overlapX <= .1 || overlapY <= .1, width + ': overlapping nodes ' + box.id + ' and ' + other.id);
+    }
+  }
   const fitted = await viewport(page);
   for (const concept of handoff.content.concepts) {
     // Exercise actual node activation, not just the selector's change handler.

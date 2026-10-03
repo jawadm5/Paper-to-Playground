@@ -1,5 +1,0 @@
-{
-  "source_url": "https://arxiv.org/abs/1706.03762",
-  "focus": "Compare a query with three keys, turn the scores into weights, and watch those weights combine the values.",
-  "audience": "Engineering undergraduate comfortable with basic algebra."
-}

@@ -93,23 +93,10 @@
   content.concepts.forEach(c => picker.append(element('option', {value: c.id}, c.name)));
   const toolbar = element('div', {class: 'map-toolbar'});
   const canvas = element('div', {class: 'concept-canvas', tabindex: '0', 'aria-label': 'Concept canvas. Drag background to pan; use zoom or fit controls.'});
-  const nodeWidth = 168, positions = {}, labels = {}, sizes = {};
-  // Wrap the complete label, including unusually long individual words.
-  content.concepts.forEach(c => {
-    const words = c.name.match(/.{1,20}(?:\s|$)|\S{1,20}/g) || [c.name];
-    labels[c.id] = words.map(word => word.trim()).filter(Boolean);
-    sizes[c.id] = Math.max(108, 53 + labels[c.id].length * 18);
-  });
-  const groups = content.sections.map(section => ({section, concepts: content.concepts.filter(c => c.section_id === section.id)})).filter(group => group.concepts.length);
-  const top = 48 + content.relationships.length * 8;
-  let height = 430;
-  groups.forEach((group, col) => {
-    let y = top;
-    group.concepts.forEach(c => { positions[c.id] = [40 + col * 250, y]; y += sizes[c.id] + 34; });
-    height = Math.max(height, y + 20);
-  });
-  const width = Math.max(600, groups.length * 250 + 40);
+  const layout = ConceptLayout.layout(content.concepts, content.relationships);
+  const {width, height} = layout;
   const svg = svgElement('svg', {width, height, viewBox: `0 0 ${width} ${height}`, class: 'concept-world'});
+  svg.style.width = width + 'px'; svg.style.height = height + 'px';
   const defs = svgElement('defs');
   for (const [id, color] of [['map-arrow', 'var(--baseline)'], ['map-arrow-active', 'var(--accent)']]) {
     const marker = svgElement('marker', {id, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto'});
@@ -132,23 +119,33 @@
   toolbar.append(element('label', {}, 'Find a concept'), picker, zoomTools);
   $('#concept-buttons').append(toolbar); $('#concept-map').before($('#concept-buttons')); $('#concept-map').append(canvas); canvas.append(svg);
   const edgeNodes = [];
-  content.relationships.forEach((edge, index) => {
-    const [x, y] = positions[edge.from], [tx, ty] = positions[edge.to], lane = 16 + index * 8;
-    const sy = y + sizes[edge.from] / 2, ey = ty + sizes[edge.to] / 2, right = x + nodeWidth + 26, left = tx - 20;
-    // Each connector uses a top lane and column gutters, outside intervening nodes.
-    const path = svgElement('path', {d: `M${x + nodeWidth + 5} ${sy} Q${right} ${sy} ${right} ${sy - 16} L${right} ${lane + 10} Q${right} ${lane} ${right - 10} ${lane} L${left + 10} ${lane} Q${left} ${lane} ${left} ${lane + 10} L${left} ${ey - 16} Q${left} ${ey} ${tx - 7} ${ey}`, fill: 'none', stroke: 'var(--baseline)', 'stroke-width': 1.2, 'marker-end': 'url(#map-arrow)', 'data-edge': index});
+  function connectorPath(points) {
+    // Round each orthogonal bend, preserving the layout's obstacle-free routes.
+    let d = `M${points[0][0]} ${points[0][1]}`;
+    for (let i = 1; i < points.length - 1; i++) {
+      const a = points[i - 1], b = points[i], c = points[i + 1];
+      const before = Math.hypot(b[0] - a[0], b[1] - a[1]), after = Math.hypot(c[0] - b[0], c[1] - b[1]);
+      const r = Math.min(10, before / 2, after / 2);
+      if (!before || !after) continue;
+      const p = [b[0] + (a[0] - b[0]) * r / before, b[1] + (a[1] - b[1]) * r / before];
+      const q = [b[0] + (c[0] - b[0]) * r / after, b[1] + (c[1] - b[1]) * r / after];
+      d += ` L${p[0]} ${p[1]} Q${b[0]} ${b[1]} ${q[0]} ${q[1]}`;
+    }
+    return d + ` L${points.at(-1)[0]} ${points.at(-1)[1]}`;
+  }
+  layout.edges.forEach(({index, points}) => {
+    const edge = content.relationships[index];
+    const path = svgElement('path', {d: connectorPath(points), fill: 'none', stroke: 'var(--baseline)', 'stroke-width': 1.6, 'marker-end': 'url(#map-arrow)', 'data-edge': index});
     path.append(svgElement('title', {}, conceptById[edge.from].name + ' → ' + edge.label + ' → ' + conceptById[edge.to].name));
     svg.append(path); edgeNodes.push({edge, path});
   });
-  const symbols = {introduction: '◎', prerequisite: '↳', prerequisites: '↳', problem: '?', solution: 'ƒ', method: 'ƒ', results: '↗', conclusion: '∴'};
-  content.concepts.forEach(c => {
-    const [x, y] = positions[c.id], h = sizes[c.id];
+  layout.nodes.forEach(node => {
+    const c = conceptById[node.id], {x, y, width: w, height: h, lines} = node;
     const g = svgElement('g', {'data-concept': c.id, tabindex: '0', role: 'button', 'aria-label': c.name, transform: `translate(${x} ${y})`});
-    g.append(svgElement('rect', {width: nodeWidth, height: h, rx: 12, fill: 'var(--surface)', stroke: 'var(--line)', 'stroke-width': 2}));
-    for (const cx of [0, nodeWidth]) g.append(svgElement('circle', {cx, cy: h / 2, r: 5, fill: 'var(--surface)', stroke: 'var(--accent)'}));
-    const kind = content.sections.find(section => section.id === c.section_id)?.kind;
-    g.append(svgElement('text', {x: nodeWidth / 2, y: 29, 'text-anchor': 'middle', 'font-size': 22, class: 'concept-symbol', 'aria-hidden': true}, symbols[kind] || '◇'));
-    labels[c.id].forEach((line, index) => g.append(svgElement('text', {x: nodeWidth / 2, y: 53 + index * 18, 'text-anchor': 'middle', 'font-size': 13}, line)));
+    g.append(svgElement('rect', {width: w, height: h, rx: 8, fill: 'var(--surface)', stroke: 'var(--line)', 'stroke-width': 1.5}));
+    for (const cx of [0, w]) g.append(svgElement('circle', {cx, cy: h / 2, r: 4, fill: 'var(--surface)', stroke: 'var(--baseline)', 'stroke-width': 1.5}));
+    const textTop = h / 2 - (lines.length - 1) * 9 + 5;
+    lines.forEach((line, index) => g.append(svgElement('text', {x: w / 2, y: textTop + index * 18, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 500}, line)));
     g.append(svgElement('title', {}, c.name));
     g.onclick = () => selectConcept(c.id);
     g.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectConcept(c.id); } };
@@ -160,7 +157,7 @@
     $$('[data-concept]').forEach(node => { const active = node.dataset.concept === id; node.setAttribute('aria-pressed', String(active)); node.querySelector('rect').setAttribute('stroke', active ? 'var(--accent)' : 'var(--line)'); });
     edgeNodes.forEach(({edge, path}) => {
       const active = edge.from === id || edge.to === id;
-      path.setAttribute('stroke', active ? 'var(--accent)' : 'var(--baseline)'); path.setAttribute('stroke-width', active ? 3 : 1.2);
+      path.setAttribute('stroke', active ? 'var(--accent)' : 'var(--baseline)'); path.setAttribute('stroke-width', active ? 2.6 : 1.6);
       path.setAttribute('marker-end', active ? 'url(#map-arrow-active)' : 'url(#map-arrow)');
     });
     const detail = $('#concept-detail');
@@ -282,7 +279,7 @@
         list.append(li);
       }); node.append(list);
     } else {
-      const legend = paragraph('Current: teal · Baseline: gray. Both use the same axis scale.', 'legend'); node.append(legend, chart(view, values, baseline));
+      const legend = paragraph('Current: blue · Baseline: gray. Both use the same axis scale.', 'legend'); node.append(legend, chart(view, values, baseline));
       const rows = values[0].map((value, i) => view.kind === 'scatter' ? [view.labels[i] || String(i + 1), exact(baseline[0][i]), exact(baseline[1][i]), exact(value), exact(values[1][i])] : [view.labels[i] || String(i + 1), exact(baseline[0][i]), exact(value)]);
       const details = element('details'); details.append(element('summary', {}, 'View exact data table'), table(view.kind === 'scatter' ? ['Point', 'Baseline X', 'Baseline Y', 'Current X', 'Current Y'] : [view.x_label || 'Element', 'Baseline', 'Current'], rows, view.title + (output?.unit ? ' (' + output.unit + ')' : ''))); node.append(details);
     }

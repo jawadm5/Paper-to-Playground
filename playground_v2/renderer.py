@@ -39,24 +39,43 @@ def _refs(ids: list[str]) -> str:
 
 
 
-def _math(latex: str) -> str:
+def _math(latex: str, *, display: str = "block") -> str:
     """Small, bounded native MathML adapter; unsupported TeX stays explicit."""
     tokens = re.findall(r"\\[a-zA-Z]+|\\.|[{}_^]|[^{}_^\\]", latex)
     index = 0
     symbols = {"alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε", "theta": "θ", "lambda": "λ", "mu": "μ", "sigma": "σ", "tau": "τ", "phi": "φ", "omega": "ω", "pi": "π", "sum": "∑", "prod": "∏", "infty": "∞", "times": "×", "cdot": "·", "leq": "≤", "geq": "≥", "neq": "≠", "approx": "≈", "in": "∈", "rightarrow": "→", "mathbb": "", "quad": " ", "qquad": " ", "log": "log", "ln": "ln", "exp": "exp", "sin": "sin", "cos": "cos", "tan": "tan", "max": "max", "min": "min", "cdots": "⋯", "ldots": "…", "partial": "∂", "nabla": "∇", "le": "≤", "ge": "≥"}
+    large_operators = {'<mo largeop="true" movablelimits="false">' + value + '</mo>' for value in ("∑", "∏")}
+    def skip_space() -> None:
+        nonlocal index
+        while index < len(tokens) and tokens[index].isspace():
+            index += 1
     def atom(depth: int = 0) -> str:
         nonlocal index
+        skip_space()
         if index >= len(tokens) or depth > 32:
             raise ValueError("Incomplete or deeply nested equation")
         token = tokens[index]
         index += 1
         if token == "{":
             return '<mrow>' + group(depth + 1, True) + '</mrow>'
+        if token in {"}", "_", "^"}:
+            raise ValueError("Missing equation atom")
         if token == r"\frac":
             return '<mfrac>' + atom(depth + 1) + atom(depth + 1) + '</mfrac>'
         if token == r"\sqrt":
             return '<msqrt>' + atom(depth + 1) + '</msqrt>'
-        if token in {r"\mathrm", r"\mathbf", r"\operatorname", r"\text", r"\mathit", r"\mathcal"}:
+        if token in {r"\mathrm", r"\operatorname"}:
+            skip_space()
+            if index < len(tokens) and tokens[index] == "{":
+                end = index + 1
+                while end < len(tokens) and tokens[end].isalpha():
+                    end += 1
+                if end < len(tokens) and tokens[end] == "}" and end > index + 1:
+                    name = ''.join(tokens[index + 1:end])
+                    index = end + 1
+                    return '<mi mathvariant="normal">' + esc(name) + '</mi>'
+            return '<mstyle mathvariant="normal">' + atom(depth + 1) + '</mstyle>'
+        if token in {r"\mathbf", r"\text", r"\mathit", r"\mathcal"}:
             return '<mstyle mathvariant="normal">' + atom(depth + 1) + '</mstyle>'
         if token in {r"\left", r"\right", r"\bigl", r"\bigr", r"\Bigl", r"\Bigr", r"\big", r"\Big", r"\limits", r"\!", r"\,", r"\;", r"\:"}:
             return ''
@@ -64,28 +83,52 @@ def _math(latex: str) -> str:
             if token[1:] not in symbols:
                 raise ValueError("Unsupported TeX command")
             token = symbols[token[1:]]
+        if token in {"∑", "∏"}:
+            return '<mo largeop="true" movablelimits="false">' + token + '</mo>'
+        if token in {"log", "ln", "exp", "sin", "cos", "tan", "max", "min"}:
+            return '<mo form="prefix" lspace="0.167em" rspace="0.167em">' + token + '</mo>'
         tag = "mn" if token.isdigit() else ("mi" if token.isalpha() else "mo")
         return '<' + tag + '>' + esc(token) + '</' + tag + '>'
     def group(depth: int, closing: bool = False) -> str:
         nonlocal index
         parts = []
         while index < len(tokens):
+            skip_space()
+            if index >= len(tokens):
+                break
             if tokens[index] == "}":
                 if not closing:
                     raise ValueError("Unexpected close brace")
                 index += 1
                 return ''.join(parts)
-            if tokens[index] in {"_", "^"}:
-                if not parts:
-                    raise ValueError("Missing script base")
+            base = atom(depth + 1)
+            if not base:
+                continue
+            scripts = {}
+            while index < len(tokens):
+                skip_space()
+                if index < len(tokens) and tokens[index] == r"\limits":
+                    index += 1
+                    skip_space()
+                if index >= len(tokens) or tokens[index] not in {"_", "^"}:
+                    break
                 marker = tokens[index]
                 index += 1
-                base = parts.pop()
-                script = atom(depth + 1)
-                tag = "msub" if marker == "_" else "msup"
-                parts.append('<' + tag + '>' + base + script + '</' + tag + '>')
-            else:
-                parts.append(atom(depth + 1))
+                if marker in scripts:
+                    raise ValueError("Duplicate equation script")
+                scripts[marker] = atom(depth + 1)
+                if not scripts[marker]:
+                    raise ValueError("Missing equation script")
+            if scripts:
+                large = base in large_operators
+                if "_" in scripts and "^" in scripts:
+                    tag = "munderover" if large else "msubsup"
+                elif "_" in scripts:
+                    tag = "munder" if large else "msub"
+                else:
+                    tag = "mover" if large else "msup"
+                base = '<' + tag + '>' + base + scripts.get("_", "") + scripts.get("^", "") + '</' + tag + '>'
+            parts.append(base)
         if closing:
             raise ValueError("Unclosed equation")
         return ''.join(parts)
@@ -93,9 +136,50 @@ def _math(latex: str) -> str:
         if len(latex) > 6000:
             raise ValueError("Equation too long")
         markup = group(0)
-        return '<math display="block" aria-label="' + esc(latex) + '"><mrow>' + markup + '</mrow></math>'
+        math_display = "inline" if display == "inline" else "block"
+        return '<math display="' + math_display + '" aria-label="' + esc(latex) + '"><mrow>' + markup + '</mrow></math>'
     except (ValueError, RecursionError):
         return '<div class="equation-fallback"><span class="muted">Equation notation (TeX)</span><code>' + esc(latex) + '</code></div>'
+
+
+def _notation(value: str) -> str:
+    """Typeset variable notation, including bounded plain-text function syntax."""
+    def convert(text: str, depth: int = 0) -> str:
+        text = text.strip()
+        if depth > 24:
+            raise ValueError("Notation nesting exceeds limit")
+        nesting = 0
+        slashes = []
+        for index, char in enumerate(text):
+            if char == "(":
+                nesting += 1
+            elif char == ")":
+                nesting -= 1
+                if nesting < 0:
+                    raise ValueError("Unbalanced notation")
+            elif char == "/" and nesting == 0:
+                slashes.append(index)
+        if nesting:
+            raise ValueError("Unbalanced notation")
+        if len(slashes) == 1:
+            split = slashes[0]
+            if not text[:split].strip() or not text[split + 1:].strip():
+                raise ValueError("Incomplete fraction")
+            return r"\frac{" + convert(text[:split], depth + 1) + "}{" + convert(text[split + 1:], depth + 1) + "}"
+        function = re.fullmatch(r"([A-Za-z]+)\((.*)\)", text)
+        if function:
+            name, arguments = function.groups()
+            inner = convert(arguments, depth + 1)
+            return (r"\sqrt{" + inner + "}" if name == "sqrt" else
+                    r"\operatorname{" + name + "}(" + inner + ")")
+        return re.sub(r"\blog(?:_?2)?\b", lambda match: r"\log_{2}" if "2" in match[0] else r"\log", text)
+    try:
+        if len(value) > 1000:
+            raise ValueError("Notation exceeds limit")
+        latex = value if "\\" in value else convert(value)
+        return _math(latex, display="inline")
+    except (ValueError, RecursionError):
+        return '<code class="notation-fallback">' + esc(value) + '</code>'
 
 
 def _mathematics(model: dict) -> str:
@@ -104,7 +188,7 @@ def _mathematics(model: dict) -> str:
         result += '<div class="equation" id="' + esc(eq["id"]) + '">' + _math(eq["latex"]) + _paragraphs(eq["explanation"]) + _refs(eq.get("source_refs", [])) + '</div>'
     result += '<dl class="variables">'
     for var in model.get("variables", []):
-        result += '<div><dt>' + esc(var["notation"]) + '</dt><dd>' + esc(var["meaning"]) + '<small>' + esc(var["domain"]) + '</small></dd></div>'
+        result += '<div><dt>' + _notation(var["notation"]) + '</dt><dd>' + esc(var["meaning"]) + '<small>' + esc(var["domain"]) + '</small></dd></div>'
     result += '</dl><ol class="steps">' + ''.join('<li>' + esc(step["description"]) + '</li>' for step in model.get("steps", [])) + '</ol>'
     for constraint in model.get("constraints", []):
         result += '<p class="qualification">' + esc(constraint["description"]) + _refs(constraint.get("source_refs", [])) + '</p>'
@@ -188,7 +272,7 @@ def render(handoff: dict, experience: dict, output_dir: Path | str, *, source_di
     payload = {"handoff": handoff, "experience": experience, "plans": plans}
     data = _json(payload)
     styles = (ASSETS / 'research-lab.css').read_text(encoding='utf-8') + '\n' + (ASSETS / 'diagram-family.css').read_text(encoding='utf-8')
-    script = (ASSETS / 'math-engine.js').read_text(encoding='utf-8') + '\n' + (ASSETS / 'diagram-family.js').read_text(encoding='utf-8') + '\n' + (ASSETS / 'research-lab.js').read_text(encoding='utf-8')
+    script = (ASSETS / 'math-engine.js').read_text(encoding='utf-8') + '\n' + (ASSETS / 'diagram-family.js').read_text(encoding='utf-8') + '\n' + (ASSETS / 'concept-layout.js').read_text(encoding='utf-8') + '\n' + (ASSETS / 'research-lab.js').read_text(encoding='utf-8')
     if '</script' in script.lower() or '</style' in styles.lower():
         raise ValidationError("Trusted renderer assets contain an unsafe closing delimiter")
     script_hash = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
@@ -205,4 +289,4 @@ def render(handoff: dict, experience: dict, output_dir: Path | str, *, source_di
     output_dir.mkdir(parents=True, exist_ok=True)
     destination = output_dir / 'index.html'
     destination.write_text(page, encoding='utf-8')
-    return {"status": "complete", "path": str(destination), "bytes": destination.stat().st_size, "sections": len(content["sections"]), "experiments": len(experience["experiments"]), "questions": len(experience["questions"]), "embedded_images": len(images), "runtime_network_dependencies": 0, "renderer": "research-lab-native-v2", "html_sha256": hashlib.sha256(page.encode("utf-8")).hexdigest(), "renderer_assets_sha256": {name: hashlib.sha256((ASSETS / name).read_bytes()).hexdigest() for name in ("research-lab.css", "research-lab.js", "diagram-family.css", "diagram-family.js", "math-engine.js")}, "excluded_page_images": sum(v["kind"] == "page_image" for v in source["visuals"])}
+    return {"status": "complete", "path": str(destination), "bytes": destination.stat().st_size, "sections": len(content["sections"]), "experiments": len(experience["experiments"]), "questions": len(experience["questions"]), "embedded_images": len(images), "runtime_network_dependencies": 0, "renderer": "research-lab-native-v2", "html_sha256": hashlib.sha256(destination.read_bytes()).hexdigest(), "renderer_assets_sha256": {name: hashlib.sha256((ASSETS / name).read_bytes()).hexdigest() for name in ("research-lab.css", "research-lab.js", "diagram-family.css", "diagram-family.js", "concept-layout.js", "math-engine.js")}, "excluded_page_images": sum(v["kind"] == "page_image" for v in source["visuals"])}

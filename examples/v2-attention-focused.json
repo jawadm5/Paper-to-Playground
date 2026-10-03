@@ -1,5 +1,0 @@
-{
-  "source_url": "https://arxiv.org/abs/1706.03762v7",
-  "focus": "Explain only scaled dot-product attention: the different roles of queries, keys and values, the scaling by sqrt(d_k), and row-wise softmax. Include the prerequisites and context needed for this equation, but do not explain the full Transformer architecture, its training recipe, or benchmark results.",
-  "audience": "Engineering undergraduate comfortable with basic algebra and vectors, new to attention."
-}

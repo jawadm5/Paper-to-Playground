@@ -1,6 +1,6 @@
 # V2 input and Call 1 runtime
 
-This workstream retrieves the paper, prepares evidence and images, makes the first content request, and saves the version 2.1 handoff. A rejected parsed candidate can receive one small validation-repair request. The complete generator consumes this handoff for Call 2 and the offline renderer through `agent.py`. `agent_v2.py` retains the first-stage development workflow described here.
+This workstream retrieves the paper, prepares evidence and images, makes the first content request, and saves the version 2.1 handoff. A rejected parsed candidate can receive one small validation-repair request. The complete generator consumes this handoff for Call 2 and the offline renderer through `agent.py`. `content_agent.py` retains the first-stage development workflow described here.
 
 ## Setup and generate
 
@@ -9,7 +9,7 @@ Use Python 3.11 and the pinned project dependencies:
 ```powershell
 python -m pip install -r requirements.txt
 # OPENROUTER_API_KEY must be set in this terminal or saved as a Windows user variable.
-python agent_v2.py --input examples/v2-attention.json --output out/my-paper --model deepseek/deepseek-v4.1-flash
+python content_agent.py --input examples/attention-overview-input.json --output out/my-paper --model deepseek/deepseek-v4.1-flash
 ```
 
 The prepared workspace uses `.\.venv\Scripts\python.exe` in place of `python`. The CLI first reads the current process environment. On Windows, if that key is absent or blank, it reads the saved user environment value directly, so a key saved with `setx` works immediately in an already-open terminal. A nonblank terminal value takes precedence. For other programs that only read the process environment, import the saved value without printing it:
@@ -18,7 +18,7 @@ The prepared workspace uses `.\.venv\Scripts\python.exe` in place of `python`. T
 $env:OPENROUTER_API_KEY = [Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY', 'User')
 ```
 
-Input JSON contains `source_url`, `focus`, and `audience`. Only those fields are consumed. Focus sets both breadth and depth: ask for an overview to cover the paper's narrative, or specify one concept/equation/result for a focused explanation with necessary prerequisites. Outcomes and the concept map follow the chosen scope. Use a full-text HTML/PDF URL or an arXiv URL; pin the paper version when reproducibility matters. Real, version-pinned cases are provided in `examples/v2-attention.json` (overview) and `examples/v2-attention-focused.json` (one mechanism). The example.org files in `docs/v2/examples/` are synthetic contract fixtures, not retrieval targets.
+Input JSON contains `source_url`, `focus`, and `audience`. Only those fields are consumed. Focus sets both breadth and depth: ask for an overview to cover the paper's narrative, or specify one concept/equation/result for a focused explanation with necessary prerequisites. Outcomes and the concept map follow the chosen scope. Use a full-text HTML/PDF URL or an arXiv URL; pin the paper version when reproducibility matters. Real, version-pinned cases are provided in `examples/attention-overview-input.json` (overview) and `examples/attention-input.json` (one mechanism). The example.org files in `docs/v2/examples/` are synthetic contract fixtures, not retrieval targets.
 
 Output must be a new or empty directory. No run overwrites an earlier result. The supplied model is used for every request. The normal path uses one content request. If a parsed candidate fails content validation, one bounded repair may replace up to eight existing JSON locations, followed by full validation. Use `--no-repair` to disable it. There are no transport retries, model switches, code-generation calls, or separate OCR services.
 
@@ -27,13 +27,13 @@ Output must be a new or empty directory. No run overwrites an earlier result. Th
 Preparation does not need a key or a model call:
 
 ```powershell
-python agent_v2.py --input examples/v2-attention.json --output out/paper-prepared --prepare-only
+python content_agent.py --input examples/attention-overview-input.json --output out/paper-prepared --prepare-only
 ```
 
 Inspect `call1-input.json`, `source.json`, and the images in `assets/`. Edit `docs/v2/prompts/call1-content.md`, then reuse the same preparation with a new output directory:
 
 ```powershell
-python agent_v2.py --input examples/v2-attention.json --prepared-dir out/paper-prepared --output out/paper-revision-1 --model deepseek/deepseek-v4.1-flash
+python content_agent.py --input examples/attention-overview-input.json --prepared-dir out/paper-prepared --output out/paper-revision-1 --model deepseek/deepseek-v4.1-flash
 ```
 
 The input must match the saved preparation. Changing the audience or focus requires another preparation. Reuse also checks the requested text/image limits; an existing preparation that exceeds them is rejected before a model call rather than silently trimmed. A custom prompt can be supplied with `--prompt path/to/prompt.md`. Each request saves the exact current prompt, evidence, schema, and actual labeled image data URLs; editing a prompt never rewrites a previous run.
@@ -45,14 +45,14 @@ To review an existing parsed candidate without paying for another full generatio
 For source-review feedback, save concise notes with exact content-relative JSON pointers and supporting evidence, then use:
 
 ```powershell
-python agent_v2.py --input examples/v2-attention-focused.json --prepared-dir out/focused-prepared --candidate out/previous/call1-content.json --review-notes review-notes.txt --output out/focused-reviewed --model deepseek/deepseek-v4.1-flash
+python content_agent.py --input examples/attention-input.json --prepared-dir out/focused-prepared --candidate out/previous/call1-content.json --review-notes review-notes.txt --output out/focused-reviewed --model deepseek/deepseek-v4.1-flash
 ```
 
 This explicitly requests one targeted revision even if the candidate already passes structural checks. It saves the original, notes, patch, revised content, and accounting separately. The candidate must match the prepared paper's evidence IDs. Model-applied feedback still needs review; schema validation does not certify that the feedback was understood correctly. `summary.json.run_kind` distinguishes a fresh generation from candidate review, and its usage counts only requests in that invocation. Prior runs remain linked through `candidate_source`.
 
 ## Files to review and hand off
 
-The current real teaching handoff is [the user's attention run](../../out/my-paper/paper_content.json). The complete reviewed lesson and its Call 2 JSON are in `out/attention-final/`. Earlier focused/overview development examples and their original responses are retained in the workspace archive; see the cleanup record in `docs/PROGRESS.md`.
+The portable showcase is [the attention input](../../examples/attention-input.json) and [its generated HTML](../../examples/attention-output.html). A fresh run saves `paper_content.json` and `experience.json` beside its HTML. Local development runs are ignored by Git; previous runs are retained outside the repository in the workspace archive.
 
 The repair adapter accepts existing-path replacements only. If the provider adds the known non-operative `basis` or `source_refs` annotations beside a replacement, it records them separately and keeps the original response. It does not turn those annotations into content citations. Other unknown operation fields remain invalid.
 

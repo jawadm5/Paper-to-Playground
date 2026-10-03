@@ -278,7 +278,7 @@ def _generate(context: dict, source: dict, output: Path, *, model: str,
             raise ValueError("The content prompt is empty")
         image_parts, report["attached_image_ids"] = _images(context, source, output) if attach_images else ([], [])
         schema = response_schema if response_schema is not None else load_schema("call1-content")
-        if stage.endswith("-repair"):
+        if stage.endswith("-repair") or stage.startswith("call2-repair-"):
             instructions = ("Authoritative replacement-patch response schema follows. Return only "
                             "the patches object, not a rewritten content object or this schema. "
                             "Use at most eight replacements at existing non-root JSON Pointer paths. "
@@ -369,7 +369,7 @@ def _generate(context: dict, source: dict, output: Path, *, model: str,
         parsed = _parse_content(content)
     except (ValueError, TypeError):
         failed("The provider returned invalid JSON or a non-object response. Bare JSON is required; Markdown fences and duplicate fields are rejected.", "invalid_json")
-    if stage.endswith("-repair"):
+    if stage.endswith("-repair") or stage.startswith("call2-repair-"):
         parsed, annotations = normalize_patch(parsed)
         if annotations:
             report["patch_annotations"] = annotations

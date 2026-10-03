@@ -1,9 +1,0 @@
-Targeted source and independent arithmetic review found exactly two false premises in guided challenges. Correct only these two instruction strings, preserving the experiment, calculations, figures, and assessment.
-
-1. /experiments/0/challenges/0/instructions: replace with: "Start with w1 = 1 and w2 = 1, then compare with w1 = 3 and w2 = 3. Read all three probabilities and the total entropy in each case. Why does the distribution change even though the two adjustable weights remain equal? Explain the role of the third weight, which stays fixed at 1."
-Reason: the probabilities change from [1/3, 1/3, 1/3] to [3/7, 3/7, 1/7]; H changes from 1.584962500721156 to 1.4488156357251847 bits. There is no invariance because not all three weights are scaled together.
-
-2. /experiments/0/challenges/1/instructions: replace with: "Start with w1 = 1 and w2 = 1, then raise w1 to 10 while leaving w2 at 1. Compare each outcome's probability, entropy contribution, and the total entropy before and after. Which contribution changes most, and in which direction? Explain why a larger probability does not necessarily mean a larger entropy contribution."
-Reason: all three contributions decrease from 0.5283208335737187 to [0.21919533819482817, 0.29874687506009634, 0.29874687506009634]. The original question incorrectly assumed that a contribution gained.
-
-Independent arithmetic checked 16 allowed weight pairs against Python math.log2. No calculation or assessment changes are requested. Return exactly two replacement patch operations.

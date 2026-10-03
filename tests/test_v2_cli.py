@@ -60,7 +60,7 @@ class V2CliTests(unittest.TestCase):
     def test_cli_passes_saved_key_and_redacts_errors(self):
         captured = io.StringIO()
         with tempfile.TemporaryDirectory() as directory:
-            args = ["--input", str(ROOT / "examples/v2-attention.json"),
+            args = ["--input", str(ROOT / "examples/attention-overview-input.json"),
                     "--output", str(Path(directory) / "out"), "--model", "test/model"]
             with patch("playground_v2.cli.run", return_value=0) as runner, \
                     redirect_stdout(captured), redirect_stderr(captured):
@@ -76,7 +76,7 @@ class V2CliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, \
                 patch("playground_v2.cli.run", return_value=0) as runner, \
                 patch("playground_v2.cli._load_api_key") as loader, redirect_stdout(io.StringIO()):
-            self.assertEqual(main(["--input", str(ROOT / "examples/v2-attention.json"),
+            self.assertEqual(main(["--input", str(ROOT / "examples/attention-overview-input.json"),
                                    "--output", str(Path(directory) / "out"), "--prepare-only"]), 0)
         loader.assert_not_called()
         self.assertEqual(runner.call_args.kwargs["key"], "")
