@@ -1,0 +1,102 @@
+{
+  "focus": "Teach the fictional paper as a connected whole: its motivation, the problem with query-independent averaging, the proposed weighted-memory calculation, its algebraic observations, and its evidence limits.",
+  "audience": "Engineering undergraduate comfortable with basic algebra; introduce the necessary vector and weighted-sum ideas locally.",
+  "source_blocks": [
+    {
+      "id": "s_intro",
+      "kind": "paragraph",
+      "locator": {
+        "section": "1. Introduction (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. This fictional paper studies a minimal memory-reading operation. A memory stores n pairs: a key k_i used for matching and a value v_i containing the information to combine. A query q describes the current request. The aim is to define a readout that can depend on that request while preserving a transparent algebraic calculation. The paper supplies a definition and logical observations, not a trained system or an empirical comparison."
+    },
+    {
+      "id": "s_problem",
+      "kind": "paragraph",
+      "locator": {
+        "section": "2. Problem: an unchanged average (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. A baseline reader returns the arithmetic mean of the stored values, y_mean = (1/n) sum_i v_i. This treats all records equally and ignores the query. If the stored scalar values are 2 and 8, the baseline always returns 5, however the query changes. Equal treatment may be suitable when every record should contribute equally; the limitation is that this reader cannot express query-dependent preferences between records."
+    },
+    {
+      "id": "s_method",
+      "kind": "paragraph",
+      "locator": {
+        "section": "3. Proposed method (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. The proposed reader gives every record a compatibility score from the dot product of q and k_i, divided by the square root of their shared width d_k. A softmax across all records turns these scores into weights. The reader then returns the weighted sum of the corresponding values. Query and key vectors have the same positive width; the number of keys equals the number of values. Value width d_v may differ from key width. All supplied inputs are finite. Every record participates: this definition includes no mask, learned projection, training procedure, or multiple heads. The method resembles a single-query attention calculation."
+    },
+    {
+      "id": "s_formula",
+      "kind": "equation",
+      "locator": {
+        "section": "3. Proposed method (synthetic)",
+        "page": null,
+        "equation": "(1)–(3), synthetic",
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. For n >= 1, q is a row vector in R^(d_k), K contains n key rows, and V contains n value rows of width d_v. Define s_i = (q dot k_i)/sqrt(d_k), a_i = exp(s_i)/sum_(j=1)^n exp(s_j), and y = sum_(i=1)^n a_i v_i. Equivalently, s = q K^T/sqrt(d_k), a = softmax(s), and y = a V. For finite mathematical scores, the weights are positive and sum to one. Subtracting the same maximum score from all scores before exponentiation leaves the mathematical softmax unchanged and avoids exponentiating a large positive score."
+    },
+    {
+      "id": "s_observations",
+      "kind": "paragraph",
+      "locator": {
+        "section": "4. Algebraic observations (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. These are consequences of the definition, not measurements. If every score equals the same number, every weight is 1/n, so the proposed readout equals the baseline mean. A strictly larger score receives a strictly larger weight, but need not receive a weight near one. The weight vector depends on q, K, and d_k; it does not depend on V. With q, K, and d_k fixed, changing values therefore leaves the weights unchanged and changes the readout according to the same coefficients. Some value changes can cancel in the weighted sum, so not every change to V changes y. A finite softmax generally mixes records rather than choosing one record exactly."
+    },
+    {
+      "id": "s_limits",
+      "kind": "paragraph",
+      "locator": {
+        "section": "5. Scope and limitations (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. The paper does not establish that dot-product matching captures useful relevance for a real task. No data, experiments, benchmark scores, learned parameters, or empirical comparison are supplied. Its algebraic observations cannot justify claims about accuracy, learning, human understanding, or superiority over uniform averaging. Keys, values, and the query are treated as given inputs. The positive, normalized weights make y a convex combination of the supplied value vectors; this does not make the weights a full explanation of any larger system's decisions. Numerical implementations must handle finite precision carefully."
+    },
+    {
+      "id": "s_conclusion",
+      "kind": "paragraph",
+      "locator": {
+        "section": "6. Conclusion (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": null
+      },
+      "text": "SYNTHETIC TEACHING SOURCE — authored for this contract example, not extracted from a real paper. The proposed reader replaces fixed equal coefficients with coefficients determined by the query-key scores. Its contribution within this fictional paper is an inspectable definition and its elementary consequences: equal scores recover averaging, and matching determines coefficients independently of the values being combined. Whether the operation is useful for an application remains an open empirical question in this teaching source."
+    }
+  ],
+  "visuals": [
+    {
+      "id": "v1",
+      "kind": "figure",
+      "caption": "SYNTHETIC CAPTION ONLY: q and K produce scores; softmax produces weights; the weights combine the rows of V into y. No image was created or inspected.",
+      "locator": {
+        "section": "3. Proposed method (synthetic)",
+        "page": null,
+        "equation": null,
+        "figure": "Figure 1, synthetic caption"
+      },
+      "provided_as": "caption_only"
+    }
+  ],
+  "extraction_warnings": [
+    "This is a hand-written contract fixture for a fictional paper at a reserved example.org URL. No paper retrieval or model generation was performed.",
+    "All source blocks and the figure caption are synthetic. No image asset or visual analysis is available for v1.",
+    "The source contains algebraic observations only; it contains no empirical evaluation or evidence of performance improvements."
+  ]
+}

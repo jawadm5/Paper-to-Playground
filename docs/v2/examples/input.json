@@ -1,0 +1,5 @@
+{
+  "source_url": "https://example.org/synthetic-weighted-memory-paper.pdf",
+  "focus": "Teach the fictional paper as a connected whole: its motivation, the problem with query-independent averaging, the proposed weighted-memory calculation, its algebraic observations, and its evidence limits.",
+  "audience": "Engineering undergraduate comfortable with basic algebra; introduce the necessary vector and weighted-sum ideas locally."
+}

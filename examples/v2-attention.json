@@ -1,0 +1,5 @@
+{
+  "source_url": "https://arxiv.org/abs/1706.03762v7",
+  "focus": "Explain the paper's complete motivation, Transformer architecture, results and limitations, with extra depth on scaled dot-product attention and why query, key and value have different roles.",
+  "audience": "Engineering undergraduate comfortable with basic algebra and vectors, new to Transformers."
+}

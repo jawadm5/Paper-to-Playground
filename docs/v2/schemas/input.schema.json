@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:paper-to-playground:v2.1:case-input",
+  "title": "CaseInput",
+  "description": "Only these three fields are consumed; extra fields are ignored with a names-only trace warning.",
+  "type": "object",
+  "properties": {
+    "source_url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://\\S+$"
+    },
+    "focus": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "audience": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
+  "required": [
+    "source_url",
+    "focus",
+    "audience"
+  ],
+  "additionalProperties": true
+}

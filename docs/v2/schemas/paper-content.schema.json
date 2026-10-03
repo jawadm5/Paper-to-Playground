@@ -1,0 +1,1181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:paper-to-playground:v2.1:paper-content",
+  "title": "PaperContent",
+  "description": "Version 2.1: ordered learning sections plus source metadata and reusable image assets.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "2.1"
+    },
+    "input": {
+      "$ref": "#/$defs/CaseInput"
+    },
+    "source": {
+      "$ref": "#/$defs/HandoffSource"
+    },
+    "content": {
+      "$ref": "#/$defs/Content"
+    }
+  },
+  "required": [
+    "schema_version",
+    "input",
+    "source",
+    "content"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Variable": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "notation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "input",
+            "parameter",
+            "intermediate",
+            "output"
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Mathematical type/domain, dimensions, and units when relevant; no UI control configuration."
+        }
+      },
+      "required": [
+        "id",
+        "notation",
+        "meaning",
+        "role",
+        "domain"
+      ],
+      "additionalProperties": false
+    },
+    "Equation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "latex": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "variable_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "latex",
+        "explanation",
+        "variable_ids",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CalculationStep": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "input_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "output_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "equation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "description",
+        "input_ids",
+        "output_ids",
+        "equation_ids"
+      ],
+      "additionalProperties": false
+    },
+    "Constraint": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "description",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Boundary": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "assumption",
+            "limitation",
+            "simplification",
+            "misconception",
+            "missing_information"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "kind",
+        "description",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            },
+            "not": {
+              "properties": {
+                "kind": {
+                  "const": "missing_information"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "TeachingExplanation": {
+      "type": "object",
+      "properties": {
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "explanation",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Connection": {
+      "type": "object",
+      "properties": {
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "section_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "topic",
+        "section_id",
+        "explanation",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "LearningOutcome": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "understand",
+            "apply",
+            "analyze"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "level",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "Concept": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "section_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "summary",
+        "section_id"
+      ],
+      "additionalProperties": false
+    },
+    "Relationship": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "basis": {
+          "type": "string",
+          "enum": [
+            "source_supported",
+            "derived",
+            "simplified",
+            "background",
+            "analogy"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "label",
+        "basis",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "source_supported",
+                  "derived",
+                  "simplified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                },
+                "uniqueItems": true,
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "MathematicalModel": {
+      "type": "object",
+      "properties": {
+        "variables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Variable"
+          }
+        },
+        "equations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Equation"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CalculationStep"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Constraint"
+          }
+        }
+      },
+      "required": [
+        "variables",
+        "equations",
+        "steps",
+        "constraints"
+      ],
+      "additionalProperties": false
+    },
+    "Section": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "prerequisites",
+            "introduction",
+            "problem",
+            "background",
+            "method",
+            "results",
+            "discussion",
+            "conclusion",
+            "other"
+          ]
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paper_explanation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Faithful detailed account of this paper section. Identify added prerequisite/background material as teaching context."
+        },
+        "simple_explanation": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Finished accessible explanation of the same ideas, preserving qualifications and evidence strength."
+        },
+        "intuition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TeachingExplanation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "connections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Connection"
+          }
+        },
+        "learning_outcome_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "visual_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+          },
+          "uniqueItems": true
+        },
+        "boundaries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Boundary"
+          }
+        },
+        "mathematical_model": {
+          "$ref": "#/$defs/MathematicalModel",
+          "description": "Optional: include only where mathematics or an algorithm supports this section."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "parent_id",
+        "paper_explanation",
+        "simple_explanation",
+        "intuition",
+        "connections",
+        "learning_outcome_ids",
+        "visual_ids",
+        "source_refs",
+        "boundaries"
+      ],
+      "additionalProperties": false
+    },
+    "Content": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "learning_outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LearningOutcome"
+          }
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "minItems": 1
+        },
+        "concepts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Concept"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Relationship"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "learning_outcomes",
+        "sections",
+        "concepts",
+        "relationships"
+      ],
+      "additionalProperties": false
+    },
+    "CaseInput": {
+      "type": "object",
+      "properties": {
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://\\S+$"
+        },
+        "focus": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "source_url",
+        "focus",
+        "audience"
+      ],
+      "additionalProperties": false,
+      "description": "Normalized case metadata containing only the three accepted input fields."
+    },
+    "Locator": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "equation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "figure": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "section",
+        "page",
+        "equation",
+        "figure"
+      ],
+      "additionalProperties": false
+    },
+    "SourceBlock": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "heading",
+            "paragraph",
+            "equation",
+            "table",
+            "caption",
+            "page"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "locator": {
+          "$ref": "#/$defs/Locator"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "locator"
+      ],
+      "additionalProperties": false
+    },
+    "VisualAsset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "figure",
+            "page_image"
+          ]
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locator": {
+          "$ref": "#/$defs/Locator"
+        },
+        "provided_as": {
+          "type": "string",
+          "enum": [
+            "image_and_caption",
+            "image_only",
+            "caption_only",
+            "not_provided"
+          ]
+        },
+        "asset_path": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^assets/[A-Za-z0-9][A-Za-z0-9_.-]*\\.(png|jpg|jpeg|webp|gif)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mime_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "image/png",
+                "image/jpeg",
+                "image/webp",
+                "image/gif"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://\\S+$"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "caption",
+        "locator",
+        "provided_as",
+        "asset_path",
+        "mime_type",
+        "source_url",
+        "attribution"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "provided_as": {
+                "const": "image_only"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "caption": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provided_as": {
+                "enum": [
+                  "image_and_caption",
+                  "caption_only"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "caption": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "page_image"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "locator": {
+                "properties": {
+                  "page": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "asset_path": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "mime_type": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "mime_type": {
+                "type": "string",
+                "enum": [
+                  "image/png",
+                  "image/jpeg",
+                  "image/webp",
+                  "image/gif"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "provided_as": {
+                "enum": [
+                  "image_and_caption",
+                  "image_only"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "asset_path": {
+                "type": "string",
+                "pattern": "^assets/[A-Za-z0-9][A-Za-z0-9_.-]*\\.(png|jpg|jpeg|webp|gif)$"
+              },
+              "mime_type": {
+                "type": "string",
+                "enum": [
+                  "image/png",
+                  "image/jpeg",
+                  "image/webp",
+                  "image/gif"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Paths are relative to the handoff folder. not_provided assets may be used for display, but were not evidence available to call 1."
+    },
+    "HandoffSource": {
+      "type": "object",
+      "properties": {
+        "resolved_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://\\S+$"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SourceBlock"
+          }
+        },
+        "visuals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VisualAsset"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        }
+      },
+      "required": [
+        "resolved_url",
+        "title",
+        "references",
+        "visuals",
+        "warnings"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
